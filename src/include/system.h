@@ -10,7 +10,8 @@ extern uint32_t k_end;
 void panic(char* message, char* file);
 void kernel_panic(char* message);
 
-#define khalt asm("cli") asm("hlt")
+#define khalt asm("cli"); \ 
+            asm("hlt")
 
 #define KERNEL_START 0x100000
 #define KERNEL_END  k_end
@@ -23,7 +24,7 @@ void kernel_panic(char* message);
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "0.23.03.1ALPR"
+#define KERNEL_VERSION "0.23.03.2ALPR"
 
 void reboot();
 

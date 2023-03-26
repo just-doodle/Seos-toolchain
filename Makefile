@@ -32,6 +32,7 @@ ISOFILE=$(PROJECT).iso
 OBJECTS= 	$(SRCDIR)/boot/boot.o \
 			$(SRCDIR)/drivers/io/ports.o \
 			$(SRCDIR)/common/system.o \
+			$(SRCDIR)/drivers/video/vga_text.o \
 			$(SRCDIR)/drivers/io/serial.o \
 			$(SRCDIR)/kernel/kernel.o
 

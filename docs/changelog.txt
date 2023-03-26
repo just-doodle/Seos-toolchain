@@ -13,3 +13,10 @@
 * Fixed some typos
 * Updated Makefile
 * Deleted object files
+
+26-03-2023: 09:44 PM IST v0.23.03.2ALPR
+* Implemented vga textmode
+* Implemented scrolling
+* Updated Makefile
+* Incremented kernel version
+* Added new welcome message
