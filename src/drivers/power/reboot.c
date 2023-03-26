@@ -1,7 +1,7 @@
-#include "system.h"
-#include "ports.h"
+#include "power.h"
 
 void reboot()
 {
     outb(0x64, 0xFE);
+    khalt;
 }

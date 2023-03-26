@@ -15,6 +15,8 @@ void kernel_panic(char* message);
 
 #define KERNEL_START 0x100000
 #define KERNEL_END  k_end
+
+#define NULL (void*)0
 /*
 * version system
 * REVN.YY.MM.RELN(STATUS)
@@ -27,5 +29,7 @@ void kernel_panic(char* message);
 #define KERNEL_VERSION "0.23.03.2ALPR"
 
 void reboot();
+
+typedef uint32_t size_t;
 
 #endif

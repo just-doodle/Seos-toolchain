@@ -20,3 +20,10 @@
 * Updated Makefile
 * Incremented kernel version
 * Added new welcome message
+
+26-03-2023: 10:37 PM IST v0.23.03.2ALPR
+* Implemented some functions of string lib
+* Moved reboot function to its own file
+* Updated Makefile
+* Removed system.c
+* Updated system.h
