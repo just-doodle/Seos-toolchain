@@ -2,3 +2,5 @@
 *.iso
 .vscode
 .vscode/*
+**/*.o
+src/kernel/kernel.o

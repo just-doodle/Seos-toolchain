@@ -2,7 +2,7 @@
 
 A new rewrite of SectorOS_RE2.
 
-The kernel is currently v0.23.03.1ALP
+The kernel is currently v0.23.03.1ALPR
 
 ## Build
 

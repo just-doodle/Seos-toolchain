@@ -5,4 +5,11 @@
 * Added link.ld
 * Added system.h
 * Added system.c
+* Implemented reboot
 * Implemented port IO
+
+26-03-2023: 08:48 PM IST v0.23.03.1ALPR
+* Implemented serial IO
+* Fixed some typos
+* Updated Makefile
+* Deleted object files
