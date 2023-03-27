@@ -27,3 +27,9 @@
 * Updated Makefile
 * Removed system.c
 * Updated system.h
+
+27-03-2023: 06:45 PM IST v0.23.03.3ALPR
+* Implemented most of string operations
+* Updated system.h
+* Incremented kernel version
+* Updated README.md

@@ -26,7 +26,11 @@ void kernel_panic(char* message);
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "0.23.03.2ALPR"
+#define KERNEL_VERSION "0.23.03.3ALPR"
+
+#define KB 1024
+#define MB (1024*KB)
+#define GB (1024*MB)
 
 void reboot();
 
