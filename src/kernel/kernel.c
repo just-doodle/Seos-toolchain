@@ -2,6 +2,7 @@
 #include "multiboot.h"
 #include "serial.h"
 #include "vga_text.h"
+#include "printf.h"
 
 void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 {
@@ -17,11 +18,8 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         return;
     }
 
-    text_puts("Hello World!\n");
-    text_puts("multiboot bootloader magic is valid...\n");
-    text_puts("Kernel version is: ");
-    text_puts(KERNEL_VERSION);
-    text_putc('\n');
+    printf("Hello World!\n");
+    printf("The kernel verison is %s\n", KERNEL_VERSION);
 
     khalt;
 }

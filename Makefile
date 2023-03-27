@@ -33,6 +33,7 @@ OBJECTS= 	$(SRCDIR)/boot/boot.o \
 			$(SRCDIR)/drivers/io/ports.o \
 			$(SRCDIR)/drivers/power/reboot.o \
 			$(SRCDIR)/common/libs/string.o \
+			$(SRCDIR)/common/libs/printf.o \
 			$(SRCDIR)/drivers/video/vga_text.o \
 			$(SRCDIR)/drivers/io/serial.o \
 			$(SRCDIR)/kernel/kernel.o

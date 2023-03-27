@@ -33,3 +33,11 @@
 * Updated system.h
 * Incremented kernel version
 * Updated README.md
+
+27-03-2023: 07:23 PM IST v0.23.03.4ALPR
+* Implemented vsprintf, sprintf, and printf
+* Incremented kernel version
+* Updated README.md
+* Updated system.h
+* Updated string.h
+* Updated Makefile

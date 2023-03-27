@@ -36,4 +36,6 @@ void stoc(size_t n, char* buffer);  //? Partially implemented
 char* stoc_r(size_t n); //! Not implemented
 uint32_t chbc(char* str, char c);   //* Implemented
 
+void sprintf(char* buf, const char* fmt, ...);
+
 #endif /*__STRING_H__*/

@@ -306,3 +306,11 @@ void stoc(size_t n, char* buf)
 char* stoc_r(size_t n)
 {
 }
+
+void sprintf(char* buf, const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(buf, NULL, fmt, args);
+    va_end(args);
+}
