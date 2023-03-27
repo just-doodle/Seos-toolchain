@@ -19,7 +19,7 @@ AS=$(TOOLDIR)/i686-elf-as
 ASFLAGS=
 
 NASM=nasm
-NASMFLAGS=
+NASMFLAGS=-f elf32 -O0 -w+zeroing
 
 QEMU=qemu-system-i386
 QEMUFLAGS=
@@ -32,6 +32,8 @@ ISOFILE=$(PROJECT).iso
 OBJECTS= 	$(SRCDIR)/boot/boot.o \
 			$(SRCDIR)/drivers/io/ports.o \
 			$(SRCDIR)/drivers/power/reboot.o \
+			$(SRCDIR)/drivers/cpu/gdt.o \
+			$(SRCDIR)/drivers/cpu/gdt_helper.o \
 			$(SRCDIR)/common/libs/string.o \
 			$(SRCDIR)/common/libs/printf.o \
 			$(SRCDIR)/drivers/video/vga_text.o \

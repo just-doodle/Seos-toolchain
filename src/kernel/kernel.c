@@ -3,6 +3,7 @@
 #include "serial.h"
 #include "vga_text.h"
 #include "printf.h"
+#include "gdt.h"
 
 void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 {
@@ -11,6 +12,8 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     init_text();
     text_chcolor(VGA_LIGHT_GREEN, VGA_BLACK);
     text_clear();
+
+    init_gdt();
 
     if(multiboot_magic != 0x2BADB002)
     {
