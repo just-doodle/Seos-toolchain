@@ -25,11 +25,12 @@ int init_serial(uint16_t port, int skip_test)
         outb(serial.port + 0, 0xAE);
         if(inb(serial.port + 0) != 0xAE)
         {
-            return;
+            return 1;
         }
     }
 
     outb(serial.port + 4, 0x0F);
+    return 0;
 }
 
 int serial_received()

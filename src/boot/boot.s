@@ -1,6 +1,7 @@
 .set ALIGN, 1<<0
 .set MEMINFO, 1<<1
-.set FLAGS, ALIGN|MEMINFO
+.set ELFSHDR, 1<<5
+.set FLAGS, (ALIGN|MEMINFO)
 .set MAGIC, 0x1BADB002
 .set CHECKSUM, -(MAGIC + FLAGS)
 
@@ -22,6 +23,7 @@ stack_top:
 .type _start, @function
 _start:
     mov $stack_top, %esp
+    xor %ebp, %ebp
     push %eax
     push %ebx
     call kernelmain

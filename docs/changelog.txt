@@ -47,3 +47,19 @@
 * Incremented kernel version
 * Updated README.md
 * Updated Makefile
+
+28-03-2023: 07:55 PM IST v1.23.03.6NR
+* Major update
+* Implemented IDT
+* Implemented interrupt handler
+* Implemented exception handler
+* Implemented driver for PIC
+* Implemented driver for PIT
+* Implemented stack tracing
+* Moved kernel_panic and other debug functions to debug.c
+* Updated boot.s
+* Fixed the return value in serial.c
+* Updated system.h
+* Incremented kernel version
+* Updated Makefile
+* Updated README.md

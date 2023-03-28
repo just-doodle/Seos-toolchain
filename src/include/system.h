@@ -1,14 +1,27 @@
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
-#include "stdint.h"
 #include "stdarg.h"
 #include "stdbool.h"
 
-extern uint32_t k_end;
 
-void panic(char* message, char* file);
-void kernel_panic(char* message);
+#ifdef __USE_INBUILT_STDINT__
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
+
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed int int32_t;
+typedef signed long int64_t;
+
+#else
+#include "stdint.h"
+#endif
+
+typedef uint32_t size_t;
+
 
 #define khalt asm("cli"); \ 
             asm("hlt")
@@ -26,14 +39,22 @@ void kernel_panic(char* message);
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "0.23.03.5ALPR"
+#define KERNEL_VERSION "1.23.03.6NR"
 
 #define KB 1024
 #define MB (1024*KB)
 #define GB (1024*MB)
 
+extern uint32_t k_end;
+
 void reboot();
 
-typedef uint32_t size_t;
+typedef struct registers
+{
+    uint32_t ds;
+    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    uint32_t ino, ecode;
+    uint32_t eip, cs, eflags, useresp, ss;
+} registers_t;
 
 #endif

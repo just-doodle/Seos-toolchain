@@ -4,9 +4,8 @@ INCLUDEDIR=$(SRCDIR)/include/
 BACKUPDIR=$(SRCDIR)/../../BACKUP/
 GRUBDIR=
 
-
 CC=$(TOOLDIR)/i686-elf-gcc
-CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -Wno-write-strings -m32
+CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -Wno-write-strings -m32 -g
 
 CXX=$(TOOLDIR)/i686-elf-g++
 CXXFLAGS=
@@ -21,8 +20,14 @@ ASFLAGS=
 NASM=nasm
 NASMFLAGS=-f elf32 -O0 -w+zeroing
 
+OBJCOPY = i686-elf-objcopy
+OBJDUMP = i686-elf-objdump
+
+OBJCOPYFLAGS = --strip-debug --strip-unneeded
+
 QEMU=qemu-system-i386
-QEMUFLAGS=
+QEMUFLAGS=-cdrom SEOS.iso
+QEMUDFLAGS=-serial file:serial.log -s -S -daemonize
 
 PROJECT=SEOS
 
@@ -34,8 +39,18 @@ OBJECTS= 	$(SRCDIR)/boot/boot.o \
 			$(SRCDIR)/drivers/power/reboot.o \
 			$(SRCDIR)/drivers/cpu/gdt.o \
 			$(SRCDIR)/drivers/cpu/gdt_helper.o \
+			$(SRCDIR)/drivers/cpu/idt.o \
+			$(SRCDIR)/drivers/cpu/idt_helper.o \
+			$(SRCDIR)/drivers/cpu/pic.o \
+			$(SRCDIR)/drivers/cpu/pit.o \
+			$(SRCDIR)/interrupts/interrupt.o \
+			$(SRCDIR)/interrupts/interrupt_helper.o \
+			$(SRCDIR)/interrupts/exception.o \
+			$(SRCDIR)/interrupts/exception_helper.o \
+			$(SRCDIR)/common/libs/debug.o \
 			$(SRCDIR)/common/libs/string.o \
 			$(SRCDIR)/common/libs/printf.o \
+			$(SRCDIR)/common/libs/bit.o \
 			$(SRCDIR)/drivers/video/vga_text.o \
 			$(SRCDIR)/drivers/io/serial.o \
 			$(SRCDIR)/kernel/kernel.o
@@ -76,6 +91,19 @@ $(ISOFILE): $(EXECUTABLE)
 %.o : %.asm
 	@echo '[NASM] $@'
 	@$(NASM) $(NASMFLAGS) -o $@ $<
+
+run: iso
+	$(QEMU) $(QEMUFLAGS)
+
+rund: iso
+	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS)
+
+stripd: $(EXECUTABLE)
+	@$(TOOLDIR)$(OBJCOPY) --only-keep-debug $(EXECUTABLE) debug.sym
+	@$(TOOLDIR)$(OBJCOPY) $(OBJCOPYFLAGS) $(EXECUTABLE)
+
+forcerun: clean iso run
+forcerund: clean iso rund stripd
 
 PHONY: clean
 clean:
