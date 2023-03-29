@@ -3,10 +3,10 @@
     <img src="./assets/light_l.png#gh-light-mode-only">
     
 </p>
- <h1 align="CENTER">SectorOS-RE4</h1>
+ <h1 align="CENTER">SectorOS-RW4</h1>
 
 <p align="CENTER">
-SectorOS-RE4 is a rewrite 4 operating system project, currently in progress. This README file provides important information about the project, including how to build and run it.
+SectorOS-RW4 is a rewrite 4 operating system project, currently in progress. This README file provides important information about the project, including how to build and run it.
 Kernel Version
 </p>
 <hr>
@@ -14,7 +14,7 @@ Kernel Version
 
 
 ## 🧱 Kernel
-The current kernel version for SectorOS-RE4 is v2.23.03.6NR.<br>
+The current kernel version for SectorOS-RW4 is v2.23.03.6NR.<br>
 
 ## ⚙️ Build Steps
 
@@ -30,7 +30,7 @@ The current kernel version for SectorOS-RE4 is v2.23.03.6NR.<br>
 
 ## 🏆 Contributing
 
-SectorOS-RE4 is an open-source project, and contributions are welcome. To contribute, please follow these steps:
+SectorOS-RW4 is an open-source project, and contributions are welcome. To contribute, please follow these steps:
 
 1. Fork the project repository.
 2. Make your changes and commit them to your forked repository.
