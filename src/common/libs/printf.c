@@ -1,4 +1,5 @@
 #include "printf.h"
+#include "serial.h"
 
 int is_fmt_letter(char c)
 {
@@ -149,5 +150,13 @@ void printf(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     vsprintf(NULL, text_putc, fmt, args);
+    va_end(args);
+}
+
+void serialprintf(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(NULL, serial_putc, fmt, args);
     va_end(args);
 }

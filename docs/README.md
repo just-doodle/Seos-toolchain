@@ -14,7 +14,7 @@ Kernel Version
 
 
 ## 🧱 Kernel
-The current kernel version for SectorOS-RW4 is v2.23.03.6NR.<br>
+The current kernel version for SectorOS-RW4 is v2.23.03.7NR.<br>
 
 ## ⚙️ Build Steps
 

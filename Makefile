@@ -3,6 +3,7 @@ SRCDIR=src/
 INCLUDEDIR=$(SRCDIR)/include/
 BACKUPDIR=$(SRCDIR)/../../BACKUP/
 GRUBDIR=
+SCRIPTSDIR=$(SRCDIR)/scripts/
 
 CC=$(TOOLDIR)/i686-elf-gcc
 CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -Wno-write-strings -m32 -g
@@ -34,7 +35,8 @@ PROJECT=SEOS
 EXECUTABLE=$(PROJECT).elf
 ISOFILE=$(PROJECT).iso
 
-OBJECTS= 	$(SRCDIR)/boot/boot.o \
+OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
+			$(SRCDIR)/boot/boot.o \
 			$(SRCDIR)/drivers/io/ports.o \
 			$(SRCDIR)/drivers/power/reboot.o \
 			$(SRCDIR)/drivers/cpu/gdt.o \
@@ -51,8 +53,13 @@ OBJECTS= 	$(SRCDIR)/boot/boot.o \
 			$(SRCDIR)/common/libs/string.o \
 			$(SRCDIR)/common/libs/printf.o \
 			$(SRCDIR)/common/libs/bit.o \
+			$(SRCDIR)/common/libs/symbols.o \
+			$(SRCDIR)/common/libs/sym.o \
 			$(SRCDIR)/drivers/video/vga_text.o \
 			$(SRCDIR)/drivers/io/serial.o \
+			$(SRCDIR)/memory/kheap.o \
+			$(SRCDIR)/memory/paging.o \
+			$(SRCDIR)/memory/pmm.o \
 			$(SRCDIR)/kernel/kernel.o
 
 all: kernel iso
@@ -60,9 +67,20 @@ all: kernel iso
 kernel: $(EXECUTABLE)
 iso: $(ISOFILE)
 
-$(EXECUTABLE): $(OBJECTS)
+$(EXECUTABLE): get_symboltable $(OBJECTS)
 	@echo '[LD] $@'
 	@$(LD) $(LDFLAGS) -o $@ $(OBJECTS)
+
+compile_objs: $(OBJECTS)
+
+kernel2:
+	@make get_symboltable
+	@make compile_objs
+	@echo '[LD] $(EXECUTABLE)'
+	@$(LD) $(LDFLAGS) -o $(EXECUTABLE) $(OBJECTS)
+
+
+truecompile: clean kernel2 clean_objs kernel2 iso
 
 $(ISOFILE): $(EXECUTABLE)
 	@echo '[GRUB] $@'
@@ -92,10 +110,10 @@ $(ISOFILE): $(EXECUTABLE)
 	@echo '[NASM] $@'
 	@$(NASM) $(NASMFLAGS) -o $@ $<
 
-run: iso
+run: truecompile
 	$(QEMU) $(QEMUFLAGS)
 
-rund: iso
+rund: truecompile
 	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS)
 
 stripd: $(EXECUTABLE)
@@ -103,9 +121,15 @@ stripd: $(EXECUTABLE)
 	@$(TOOLDIR)$(OBJCOPY) $(OBJCOPYFLAGS) $(EXECUTABLE)
 
 forcerun: clean iso run
-forcerund: clean iso rund stripd
+forcerund: clean iso rund
 
-PHONY: clean
+get_symboltable:
+	$(SCRIPTSDIR)/get_symbols.sh $(EXECUTABLE) > $(SRCDIR)/common/libs/symbols.c
+
+PHONY: clean kernel
 clean:
 	@echo 'Cleaning the source directory...'
-	@rm $(OBJECTS) $(EXECUTABLE) $(ISOFILE)
+	@rm -f $(OBJECTS) $(EXECUTABLE) $(ISOFILE)
+
+clean_objs:
+	@rm -f $(OBJECTS)

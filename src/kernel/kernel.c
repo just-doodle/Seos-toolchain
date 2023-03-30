@@ -1,13 +1,13 @@
 #include "system.h"
-#include "multiboot.h"
 #include "serial.h"
 #include "vga_text.h"
 #include "printf.h"
 #include "gdt.h"
 #include "idt.h"
 #include "pit.h"
-
-
+#include "paging.h"
+#include "kheap.h"
+#include "pmm.h"
 
 void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 {
@@ -17,32 +17,31 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     text_chcolor(VGA_LIGHT_GREEN, VGA_BLACK);
     text_clear();
 
-    if(multiboot_magic != 0x2BADB002)
-    {
-        serial_puts("multiboot bootloader magic is invalid. Kernel cannot boot.\n");
-        return;
-    }
-
-    if(info->flags & (1<<5))
-    {
-        serial_puts("ELF_SHDR flag is set\n");
-    }
-
-    printf("Multiboot info:\n\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", info->boot_loader_name, info->cmdline, (info->mem_upper / 1024));
-
     init_gdt();
     init_idt();
 
     init_pic();
 
+    m_info = info;
+
+    init_pmm(1096 * MB);
+    init_paging();
+    init_kheap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_MAX_ADDRESS);
+
+	init_symDB();
+
+	init_pit();
+
+    printf("Multiboot info:\n\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", info->boot_loader_name, info->cmdline, (info->mem_upper / 1024));
+
     enable_interrupts();
 
-    init_pit();
     printf("[KERNEL] Kernel has successfully initialized\n\n");
 
     printf("Hello World!\n");
-    sleep(1000);
     printf("The kernel version is %s\n", KERNEL_VERSION);
+
+    backtrace();
 
     khalt;
 }

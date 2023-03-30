@@ -1,27 +1,31 @@
-ENTRY(_start)
+ENTRY(kernel_entry)
+
+paddr = 0x100000;
+off = 0xC0000000;
+vaddr = off + paddr;
 
 SECTIONS
 {
-  . = 1M;
+    . = 0xC0100000;
+    .text ALIGN(4K) : AT(ADDR(.text)-0xC0000000)
+    {
+        *(.multiboot)
+        *(.text)
+    }
+    .rodata ALIGN (4K) : AT(ADDR(.rodata)-0xC0000000)
+    {
+        *(.rodata)
+    }
+    .bss ALIGN(4K) : AT(ADDR(.bss)-0xC0000000)
+    {
+        *(.bss)
+        *(.initial_stack)
+    }
+    .data ALIGN(4K) : AT(ADDR(.data)-0xC0000000)
+    {
+        *(.data)
+    }
 
-  .text BLOCK(4K) : ALIGN(4K)
-  {
-    *(.multiboot)
-    *(.text)
-  }
-  .rodata BLOCK(4K) : ALIGN(4K)
-  {
-    *(.rodata)
-  }
-  .data BLOCK(4K) : ALIGN(4K)
-  {
-    *(.data)
-  }
-  .bss BLOCK(4K) : ALIGN(4K)
-  {
-    *(COMMON)
-    *(.bss)
-  }
-
-  k_end = .;
+    k_end = .;
+    /DISCARD/ : { *(.fini_array*) *(.comment) }
 }

@@ -63,3 +63,22 @@
 * Incremented kernel version
 * Updated Makefile
 * Updated README.md
+
+29-03-2023: ??:?? ?? IST v1.23.03.6NR
+* New README.md from @harry260 [Thanks]
+
+30-03-2023: 08:01 PM IST v2.23.03.7NR
+* Major update
+* Made the kernel higher half
+* Implemented PMM
+* Implemented Paging
+* Implemented dynamic memory allocator
+* Implemented stack tracing with symbol lookup
+* Split boot.s to boot.asm and multiboot.s
+* Added serialprintf() to print formatted string to serial port
+* Updated link.ld
+* Updated exception handler to print stack trace after an exception occurs
+* Added new script get_symbols.sh to get symbols from the kernel and put them into symbols.c
+* Updated kernel.c
+* Incremented kernel version
+* Updated README.md

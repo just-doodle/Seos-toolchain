@@ -3,6 +3,7 @@
 
 #include "stdarg.h"
 #include "stdbool.h"
+#include "multiboot.h"
 
 
 #ifdef __USE_INBUILT_STDINT__
@@ -26,7 +27,7 @@ typedef uint32_t size_t;
 #define khalt asm("cli"); \ 
             asm("hlt")
 
-#define KERNEL_START 0x100000
+#define KERNEL_BASE 0xC0000000
 #define KERNEL_END  k_end
 
 #define NULL (void*)0
@@ -39,13 +40,17 @@ typedef uint32_t size_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "1.23.03.6NR"
+#define KERNEL_VERSION "2.23.03.7NR"
 
 #define KB 1024
 #define MB (1024*KB)
 #define GB (1024*MB)
 
 extern uint32_t k_end;
+
+extern multiboot_info_t* m_info;
+extern int paging_enabled;
+extern bool kheap_enabled;
 
 void reboot();
 

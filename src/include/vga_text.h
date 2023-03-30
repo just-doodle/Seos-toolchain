@@ -4,7 +4,7 @@
 #include "system.h"
 #include "ports.h"
 
-#define VGA_TEXT_FB 0xB8000
+#define VGA_TEXT_FB (0xB8000 + KERNEL_BASE)
 
 
 #define VGA_BLACK 0

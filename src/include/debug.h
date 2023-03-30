@@ -11,6 +11,8 @@ typedef struct stackframe
     uint32_t eip;
 }stackframe_t;
 
+#define ASSERT(b) ((b) ? (void)0 : kernel_panic(#b))
+
 void panic(char* message, char* file);
 void kernel_panic(const char* message);
 void stack_trace(uint32_t maxframes);
