@@ -8,6 +8,9 @@
 #include "paging.h"
 #include "kheap.h"
 #include "pmm.h"
+#include "cpuinfo.h"
+#include "keyboard.h"
+#include "shell.h"
 
 void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 {
@@ -22,26 +25,34 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     init_pic();
 
-    m_info = info;
-
-    init_pmm(1096 * MB);
+    init_pmm(1024 * MB);
     init_paging();
     init_kheap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_MAX_ADDRESS);
 
-	init_symDB();
-
 	init_pit();
 
-    printf("Multiboot info:\n\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", info->boot_loader_name, info->cmdline, (info->mem_upper / 1024));
-
     enable_interrupts();
+
+    init_shell();
+    init_keyboard();
+
+    printf("Multiboot info:\n\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", info->boot_loader_name, info->cmdline, (info->mem_upper / 1024));
 
     printf("[KERNEL] Kernel has successfully initialized\n\n");
 
     printf("Hello World!\n");
     printf("The kernel version is %s\n", KERNEL_VERSION);
 
-    backtrace();
+    init_rand();
 
-    khalt;
+    print_cpu_info();
+
+    printf("rand: ");
+    for(int i = 0; i < 10; i++)
+        printf("%d ", rand_range(0, 256));
+
+    printf("\n\n");
+    printf("SectorOS Kernel v1.0.0\nRun help to get the list of commands.\n#/> ");
+
+    while(1);
 }

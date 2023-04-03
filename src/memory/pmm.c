@@ -1,13 +1,17 @@
 #include "pmm.h"
 
-uint8_t* pmm_bitmap = (uint8_t*)(&k_end);
+uint8_t* pmm_bitmap = (uint8_t*)(&k_end + 0x1000);
 uint8_t* mem_start;
 uint32_t total_blocks;
 uint32_t pmm_bitmap_size;
 
+uint32_t get_totalBlocks()
+{
+    return total_blocks;
+}
+
 void init_pmm(uint32_t mem_size)
 {
-    printf("[PMM] Initializing...\n");
     total_blocks = mem_size / BLOCK_SIZE;
     pmm_bitmap_size = total_blocks / BPP;
     if(pmm_bitmap_size * BPP < total_blocks)

@@ -1,6 +1,6 @@
 #include "vga_text.h"
 
-vga_text_t textmode;
+static vga_text_t textmode;
 
 static uint16_t* text_fb = (uint16_t*)VGA_TEXT_FB;
 
@@ -18,7 +18,7 @@ void init_text()
 
 void move_cursor()
 {
-    uint16_t pos = textmode.y * textmode.width + textmode.x;
+    uint16_t pos = (textmode.y * 80 + textmode.x);
     outb(0x3D4, 0x0F);
     outb(0x3D5, (uint8_t) (pos & 0xFF));
     outb(0x3D4, 0x0E);
@@ -52,7 +52,7 @@ void text_putc(char c)
     uint8_t attr = (textmode.bg << 4) | (textmode.fg & 0x0F);
     uint16_t* location;
 
-    if(c == '\b' & textmode.x)
+    if((c == 0x08) & (textmode.x > 0))
     {
         textmode.x--;
     }

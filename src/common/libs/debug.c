@@ -1,6 +1,5 @@
 #include "debug.h"
 
-#include "sym.h"
 
 void kernel_panic(const char* message)
 {
@@ -21,17 +20,90 @@ void stack_trace(uint32_t maxframes)
     }
 }
 
-void backtrace()
+#define DUMP_COLS 16
+
+void xxd(void* ptr, uint32_t size)
 {
-    stackframe_t* stk;
-    asm("movl %%ebp,%0" : "=r"(stk) ::);
-    symoff_t symbol;
-    printf("stack trace:\n");
-    for(uint32_t frame = 0; stk && frame < 100; frame++)
+    uint32_t i;
+    uint32_t j;
+
+    for(i = 0; i < size + ((size % DUMP_COLS) ? (DUMP_COLS - size % DUMP_COLS) : 0); i++) 
     {
-        symbol = get_symbol(stk->eip);
-        printf("\t[0x%06x]: 0x%06x {%s+", ((uint32_t)stk), stk->eip, symbol.name);
-        printf("0x%x}\n", symbol.offset);
-        stk = stk->ebp;
+        if(i % DUMP_COLS == 0) 
+        {
+            serialprintf("0x%06x: ", i);
+        }
+
+        if(i < size) 
+        {
+            serialprintf("%02x ", 0xFF & ((char*)ptr)[i]);
+        }
+        else
+        {
+            serialprintf("   ");
+        }
+
+        if(i % DUMP_COLS == (DUMP_COLS - 1))
+        {
+            for(j = i - (DUMP_COLS - 1); j <= i; j++)
+            {
+                if(j >= size)
+                {
+                    serialprintf(" ");
+                }
+                else if(isprint(((char*)ptr)[j]))
+                {
+                    serialprintf("%c", (((char*)ptr)[j]) & 0xFF);
+                }
+                else
+                {
+                    serialprintf(".");
+                }
+            }
+            serialprintf("\n");
+        }
+    }
+}
+
+void xxdf(void* ptr, uint32_t size)
+{
+    uint32_t i;
+    uint32_t j;
+
+    for(i = 0; i < size + ((size % DUMP_COLS) ? (DUMP_COLS - size % DUMP_COLS) : 0); i++) 
+    {
+        if(i % DUMP_COLS == 0) 
+        {
+            printf("0x%06x: ", i);
+        }
+
+        if(i < size) 
+        {
+            printf("%02x ", 0xFF & ((char*)ptr)[i]);
+        }
+        else
+        {
+            printf("   ");
+        }
+
+        if(i % DUMP_COLS == (DUMP_COLS - 1))
+        {
+            for(j = i - (DUMP_COLS - 1); j <= i; j++)
+            {
+                if(j >= size)
+                {
+                    printf(" ");
+                }
+                else if(isprint(((char*)ptr)[j]))
+                {
+                    printf("%c", (((char*)ptr)[j]) & 0xFF);
+                }
+                else
+                {
+                    printf(".");
+                }
+            }
+            printf("\n");
+        }
     }
 }

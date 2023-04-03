@@ -1,4 +1,6 @@
 #include "string.h"
+#include "kheap.h"
+#include "printf.h"
 
 int strlen(const char* s)
 {
@@ -66,7 +68,7 @@ char* strncpy(char* dst, const char* src, int n)
     unsigned count;
     if((dst == (char*)NULL) || (src == (char*)NULL))
     {
-        return (dst == NULL);
+        return (dst = NULL);
     }
 
     if(n > 255)
@@ -84,8 +86,10 @@ char* strncpy(char* dst, const char* src, int n)
 
     if(count >= 255)
     {
-        return (dst == NULL);
+        return (dst = NULL);
     }
+
+    return dst;
 }
 
 int strcmp(const char* dst, char* src)
@@ -222,6 +226,7 @@ int atoi(char *string)
 
 char* itoa_r(unsigned long int n, int base)
 {
+    return NULL;
 }
 
 int isspace(char c)
@@ -248,10 +253,18 @@ int isprint(char c)
 
 char *strdup(const char *src)
 {
+    int len = strlen(src) + 1;
+    char *dst = (char*)kmalloc(len);
+    memcpy(dst, src, len);
+    return dst;
 }
 
 char *strndup(const char *src, uint32_t len)
 {
+    char *dst = (char*)kmalloc(len + 1);
+    memcpy(dst, src, len);
+    dst[len] = '\0';
+    return dst;
 }
 
 char *strsep(char **stringp, const char *delim) {
@@ -305,6 +318,7 @@ void stoc(size_t n, char* buf)
 
 char* stoc_r(size_t n)
 {
+    return NULL;
 }
 
 void sprintf(char* buf, const char* fmt, ...)
@@ -313,4 +327,48 @@ void sprintf(char* buf, const char* fmt, ...)
     va_start(args, fmt);
     vsprintf(buf, NULL, fmt, args);
     va_end(args);
+}
+
+list_t *str_split(const char *str, const char *delim, unsigned int *numtokens)
+{
+    list_t *ret_list = list_create();
+    char *s = strdup(str);
+    char *token, *rest = s;
+    while ((token = strsep(&rest, delim)) != NULL)
+    {
+        if (!strcmp(token, "."))
+            continue;
+        if (!strcmp(token, ".."))
+        {
+            if (list_size(ret_list) > 0)
+                list_pop(ret_list);
+            continue;
+        }
+        list_push(ret_list, strdup(token));
+        if (numtokens)
+            (*numtokens)++;
+    }
+    kfree(s);
+    return ret_list;
+}
+
+char *list2str(list_t *list, const char *delim)
+{
+    char *ret = (char*)kmalloc(256);
+    memset(ret, 0, 256);
+    int len = 0, ret_len = 256;
+    while (list_size(list) > 0)
+    {
+        char *temp = (char*)list_pop(list)->val;
+        int len_temp = strlen(temp);
+        if (len + len_temp + 1 + 1 > ret_len)
+        {
+            ret_len = ret_len * 2;
+            ret = (char*)krealloc(ret, ret_len);
+            len = len + len_temp + 1;
+        }
+        strcat(ret, delim);
+        strcat(ret, temp);
+    }
+    return ret;
 }

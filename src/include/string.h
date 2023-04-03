@@ -2,6 +2,7 @@
 #define __STRING_H__
 
 #include "system.h"
+#include "list.h"
 
 int memcmp(uint8_t *data1, uint8_t *data2, int n); //* Implemented
 void *memcpy(void *dst, const void *src, int n);   //* Implemented
@@ -35,6 +36,9 @@ char *strsep(char **stringp, const char *delim); //* Implemented
 void stoc(size_t n, char* buffer);  //? Partially implemented
 char* stoc_r(size_t n); //! Not implemented
 uint32_t chbc(char* str, char c);   //* Implemented
+
+list_t *str_split(const char *str, const char *delim, uint32_t *numtokens); //* Implemented
+char *list2str(list_t *list, const char *delim); //* Implemented
 
 void sprintf(char* buf, const char* fmt, ...);
 

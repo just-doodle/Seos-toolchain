@@ -42,7 +42,7 @@ char read_serial()
 {
     while(serial_received() == 0)
 
-    return inb(serial.port);
+    return (inb(serial.port));
 }
 
 int is_transmit_empty()
@@ -60,7 +60,8 @@ void serial_putc(char c)
 {
     if(c == '\n')
     {
-        write_serial('\r\n');
+        write_serial('\r');
+        write_serial('\n');
         return;
     }
     write_serial(c);

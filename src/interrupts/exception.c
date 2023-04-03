@@ -1,5 +1,6 @@
 #include "isr.h"
 #include "vga_text.h"
+#include "debug.h"
 
 char* exception_messages[] =
 {
@@ -57,7 +58,7 @@ void exception_handler(registers_t cps)
         printf("ESI = 0x%06x\n", cps.esi);
         printf("EDI = 0x%06x\n", cps.edi);
         printf("EBP = 0x%06x\n", cps.ebp);
-        backtrace();
+        stack_trace(10);
         serialprintf("%s\n", exception_messages[cps.ino]);
         text_chcolor(VGA_WHITE, VGA_BLACK);
     }

@@ -6,7 +6,7 @@
  <h1 align="CENTER">SectorOS-RW4</h1>
 
 <p align="CENTER">
-SectorOS-RW4 is a rewrite 4 operating system project, currently in progress. This README file provides important information about the project, including how to build and run it.
+SectorOS-RW4 is the 4th rewrite of SectorOS project, currently in progress. This README file provides important information about the project, including how to build and run it.
 Kernel Version
 </p>
 <hr>
@@ -14,7 +14,7 @@ Kernel Version
 
 
 ## 🧱 Kernel
-The current kernel version for SectorOS-RW4 is v2.23.03.7NR.<br>
+The current kernel version for SectorOS-RW4 is v3.23.03.8NR.<br>
 
 ## ⚙️ Build Steps
 

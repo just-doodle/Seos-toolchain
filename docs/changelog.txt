@@ -82,3 +82,22 @@
 * Updated kernel.c
 * Incremented kernel version
 * Updated README.md
+
+03-04-2023: 02:23 PM IST v3.23.03.8NR
+* Major update
+* Fixed a bug in PMM
+* Implemented function to retrieve cpuinfo
+* Implemented a driver for keyboard
+* Implemented a new shell
+* Removed debug symbol support
+* Added a new data structure 'list'
+* Implemented a new Pseudorandom number generator
+* Added new string operators
+* Updated link.ld
+* Fixed all warnings except one in serial.c
+* Added a function to read timestamp counter
+* Added a function to measure cpu clock speed
+* Updated textmode driver
+* Updated Makefile
+* Incremented kernel version
+* Implemented a function to dump contents of a memory address to screen or serial port

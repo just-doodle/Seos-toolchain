@@ -26,8 +26,8 @@
 
 typedef struct vga_text
 {
-    uint32_t x;
-    uint32_t y;
+    uint16_t x;
+    uint16_t y;
 
     uint32_t height;
     uint32_t width;

@@ -5,8 +5,9 @@
 #include "stdbool.h"
 #include "multiboot.h"
 
+#define __USE_INBUILT_STDINT__ 0
 
-#ifdef __USE_INBUILT_STDINT__
+#if __USE_INBUILT_STDINT__
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
@@ -22,10 +23,11 @@ typedef signed long int64_t;
 #endif
 
 typedef uint32_t size_t;
+typedef unsigned long ul_t;
 
 
-#define khalt asm("cli"); \ 
-            asm("hlt")
+#define khalt asm("cli"); \
+            asm("hlt");
 
 #define KERNEL_BASE 0xC0000000
 #define KERNEL_END  k_end
@@ -40,7 +42,7 @@ typedef uint32_t size_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "2.23.03.7NR"
+#define KERNEL_VERSION "3.23.03.8NR"
 
 #define KB 1024
 #define MB (1024*KB)
