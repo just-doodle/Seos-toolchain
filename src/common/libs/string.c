@@ -22,6 +22,18 @@ int memcmp(uint8_t* data1, uint8_t* data2, int n)
     return 1;
 }
 
+int memzero(uint8_t* data, size_t size)
+{
+    for(int i = 0; i < size; i++)
+    {
+        if(data[i] != 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void* memcpy(void* dst, const void* src, int n)
 {
     char* ret = (char*)dst;
@@ -126,17 +138,17 @@ int strncmp(const char *s1, const char *s2, int c)
 char* strstr(const char* in, const char* str)
 {
     char c;
-    size_t len;
+    uint32_t len;
 
-    c = *str;
-    if(!c)
-        return (char*)in;
+    c = *str++;
+    if (!c)
+        return (char *)in;
 
     len = strlen(str);
-
     do
     {
         char sc;
+
         do
         {
             sc = *in++;
@@ -226,7 +238,28 @@ int atoi(char *string)
 
 char* itoa_r(unsigned long int n, int base)
 {
-    return NULL;
+    unsigned long int tmp;
+    int i, j;
+    char* buf = (char*)kmalloc(sizeof(char) * 32);
+
+    tmp = n;
+    i = 0;
+
+    do
+    {
+        tmp = n % base;
+        buf[i++] = (tmp < 10) ? (tmp + '0') : (tmp + 'a' - 10);
+    } while (n /= base);
+    buf[i--] = 0;
+
+    for (j = 0; j < i; j++, i--)
+    {
+        tmp = buf[j];
+        buf[j] = buf[i];
+        buf[i] = tmp;
+    }
+
+    return buf;
 }
 
 int isspace(char c)

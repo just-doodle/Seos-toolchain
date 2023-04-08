@@ -16,6 +16,8 @@
 #define PAGE_SIZE 4096
 #define OVERHEAD (sizeof(struct memory_block) + sizeof(uint32_t))
 
+#define ZALLOC_TYPES(a) zalloc(sizeof(a))
+
 typedef struct memory_block
 {
     struct memory_block* next;
@@ -81,6 +83,8 @@ void kfree(void* ptr);
 void* krealloc(void* ptr, uint32_t size);
 
 void* kcalloc(uint32_t size, uint32_t num);
+
+void* zalloc(uint32_t size);
 
 void print_db();
 

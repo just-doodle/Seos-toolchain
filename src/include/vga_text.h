@@ -6,7 +6,6 @@
 
 #define VGA_TEXT_FB (0xB8000 + KERNEL_BASE)
 
-
 #define VGA_BLACK 0
 #define VGA_BLUE 1
 #define VGA_GREEN 2
@@ -34,6 +33,7 @@ typedef struct vga_text
 
     uint8_t fg;
     uint8_t bg;
+    uint8_t attr;
 }vga_text_t;
 
 void init_text();
@@ -43,5 +43,6 @@ void text_puts(char* str);
 
 void text_chcolor(uint8_t fg, uint8_t bg);
 void text_clear();
+void move_cursor();
 
 #endif /*__VGA_TEXT__*/

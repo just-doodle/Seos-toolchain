@@ -444,6 +444,13 @@ void* calloc(uint32_t size, uint32_t num)
     return ptr;
 }
 
+void* zalloc(uint32_t size)
+{
+    void* ptr = malloc(size);
+    memset(ptr, 0, size);
+    return ptr;
+}
+
 void* kcalloc(uint32_t size, uint32_t num)
 {
     return calloc(num, size);

@@ -4,6 +4,15 @@ static vga_text_t textmode;
 
 static uint16_t* text_fb = (uint16_t*)VGA_TEXT_FB;
 
+void disable_blink()
+{
+    uint32_t a = inb(0x3DA);
+    outb(0x3C0, 0x30);
+    a = inb(0x3C1);
+    a = a & 0xF7;
+    outb(0x3C0, a);
+}
+
 void init_text()
 {
     textmode.height = 25;
@@ -12,8 +21,10 @@ void init_text()
     textmode.x = 0;
     textmode.y = 0;
 
-    textmode.fg = 0x0F;
-    textmode.bg = 0x00;
+    textmode.fg = VGA_WHITE;
+    textmode.bg = VGA_LIGHT_BLUE;
+    disable_blink();
+    move_cursor();
 }
 
 void move_cursor()
@@ -27,8 +38,8 @@ void move_cursor()
 
 void scroll()
 {
-    uint8_t attr = (textmode.bg << 4) | (textmode.fg & 0x0F);
-    uint8_t space = 0x20 | (attr << 8);
+    uint8_t attr = ((textmode.bg << 4) & 0xF0) | (textmode.fg & 0x0F);
+    uint16_t space = 0x20 | (attr << 8);
 
     if(textmode.y >= textmode.height)
     {
@@ -49,7 +60,7 @@ void scroll()
 
 void text_putc(char c)
 {
-    uint8_t attr = (textmode.bg << 4) | (textmode.fg & 0x0F);
+    uint8_t attr = ((textmode.bg << 4) & 0xF0) | (textmode.fg & 0x0F);
     uint16_t* location;
 
     if((c == 0x08) & (textmode.x > 0))
@@ -88,12 +99,15 @@ void text_putc(char c)
 
 void text_clear()
 {
-    uint8_t attr = (textmode.bg << 4) | (textmode.fg & 0x0F);
-    uint8_t space = 0x20 | (attr << 8);
+    uint8_t attr = ((textmode.bg << 4) & 0xF0) | (textmode.fg & 0x0F);
+    uint16_t space = 0x20 | (attr << 8);
     for(int i = 0*80; i < 25*80; i++)
     {
         text_fb[i] = space;
     }
+    textmode.x = 0;
+    textmode.y = 0;
+    move_cursor();
 }
 
 void text_chcolor(uint8_t fg, uint8_t bg)

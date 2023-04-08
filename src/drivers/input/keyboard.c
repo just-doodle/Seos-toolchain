@@ -389,5 +389,13 @@ char kcodeTochar(uint8_t scancode)
             break;
         }
     }
+    else if(scancode == 0xaa || scancode == 0xb6)
+    {
+        isShift = 0;
+    }
+    else
+    {
+        serialprintf("[KBD] GOT KEYPRESS: 0x%02x\n", scancode);
+    }
     return key;
 }

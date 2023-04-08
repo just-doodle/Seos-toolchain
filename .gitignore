@@ -6,3 +6,6 @@
 src/kernel/kernel.o
 *.sym
 *.log
+*.img
+sorfs
+sorhd

@@ -16,6 +16,7 @@ void stack_trace(uint32_t maxframes)
     for(uint32_t frame = 0; stk && frame < maxframes; frame++)
     {
         printf("\t[0x%06x]: 0x%06x\n", ((uint32_t)stk), stk->eip);
+        serialprintf("\t[0x%06x]: 0x%06x\n", ((uint32_t)stk), stk->eip);
         stk = stk->ebp;
     }
 }

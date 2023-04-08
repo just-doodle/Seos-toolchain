@@ -40,6 +40,8 @@ uint32_t chbc(char* str, char c);   //* Implemented
 list_t *str_split(const char *str, const char *delim, uint32_t *numtokens); //* Implemented
 char *list2str(list_t *list, const char *delim); //* Implemented
 
+int memzero(uint8_t* data, size_t size);
+
 void sprintf(char* buf, const char* fmt, ...);
 
 #endif /*__STRING_H__*/

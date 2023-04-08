@@ -83,7 +83,7 @@
 * Incremented kernel version
 * Updated README.md
 
-03-04-2023: 02:23 PM IST v3.23.03.8NR
+03-04-2023: 02:23 PM IST v3.23.04.1NR
 * Major update
 * Fixed a bug in PMM
 * Implemented function to retrieve cpuinfo
@@ -101,3 +101,25 @@
 * Updated Makefile
 * Incremented kernel version
 * Implemented a function to dump contents of a memory address to screen or serial port
+
+08-04-2023: 09:30 PM IST v4.23.04.2NR
+* Major update
+* Implemented VFS
+* Implemented SORFS
+* Implemented tree structure
+* Implemented slow ata driver
+* Implemented mbr partition probing
+* Implemented ramdisk
+* Implemented devfs
+* Implemented kernelfs
+* Implemented filesystem detection function
+* Created tools for making and extracting sorfs disk image
+* Can access sorfs disk image loaded using module command in grub
+* Implemented PCI driver
+* Fixed some bugs in vga_text driver
+* Fixed a bug in strstr function in string.c
+* Implemented random motd printing
+* Implemented zalloc to allocate memory initialized with 0
+* Updated Makefile
+* Updated kernelmain.c
+* Incremented kernel version
