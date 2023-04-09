@@ -5,6 +5,7 @@
 #include "vfs.h"
 #include "mount.h"
 #include "ramdisk.h"
+#include "process.h"
 
 shellcmd_t cmds[256];
 int c_cmds = 0;
@@ -225,6 +226,20 @@ int s_textclear(list_t* args)
     return 0;
 }
 
+int s_elf(list_t* args)
+{
+    uint32_t argc = list_size(args);
+    if(argc < 2)
+    {
+        printf("usage: %s [file]\n");
+        return 1;
+    }
+
+    change_keyboard_handler(process_kbh);
+    create_process(list_pop(args)->val);
+    return 0;
+}
+
 void getCMD(char* cmd, char* help, shellcmdf_t function)
 {
     memset(cmds[c_cmds].cmd, 0, 32);
@@ -266,6 +281,7 @@ void init_shell()
     getCMD("debug_printVFS", "Prints the VFS table", s_dPrintVFS);
     getCMD("create_ramdisk", "Creates ramdisk of given file in /dev/ directory", s_ramdisk);
     getCMD("color", "Changes the text color. Only use decimal numbers.", s_chcolor);
+    getCMD("loadelf", "Loads the given ELF file.", s_elf);
 }
 
 void clear_buffer()

@@ -21,6 +21,8 @@
 #include "mount.h"
 #include "tss.h"
 #include "usermode.h"
+#include "syscall.h"
+#include "process.h"
 
 #define MOTD_NUM 3
 
@@ -43,11 +45,29 @@ void print_motd(int idx)
     };
 }
 
+void usp2()
+{
+    SYSCALL_CLEAR
+    SYSCALL_PUTCHAR('W');
+    SYSCALL_EXIT(0)
+}
+
+void usp()
+{
+    SYSCALL_CLEAR
+    SYSCALL_PUTCHAR('H');
+    SYSCALL_CREATE_PROCESS_FUN("USP2", usp2)
+    while(1);
+}
+
+
 void rand_motd()
 {
     int r = rand_range(0, MOTD_NUM);
     print_motd(r);
 }
+
+list_t* mboot_cmd;
 
 void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 {
@@ -69,8 +89,13 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
 	init_pit();
 
+    init_syscall();
+
+    init_processManager();
+
+    mboot_cmd = str_split(((char*)info->cmdline), " ", NULL);
+
     enable_interrupts();
-    init_shell();
     init_keyboard();
 
     init_pci();
@@ -105,7 +130,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         multiboot_module_t* mods = (multiboot_module_t*)info->mods_addr;
         printf("[MULTIBOOT] mods name: %s\n", mods[0].cmdline);
         alloc_region(kernel_page_dir, mods[0].mod_start, mods[0].mod_end, 1, 1, 1);
-        xxd(mods[0].mod_start, (mods[0].mod_end - mods[0].mod_start));
+        xxd((void*)mods[0].mod_start, (mods[0].mod_end - mods[0].mod_start));
         serialprintf("Ramdisk created\n");
         add_ramdisk(mods[0].mod_start, mods[0].mod_end, 1);
     }
@@ -123,6 +148,23 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     {
         printf("[KERNEL] One module is loaded by the bootloader. The module can be accessed via /dev/rdisk0.\nTo mount the drive: mount /dev/rdisk0 [Mountpoint].\n");
     }
+
+    int j = 0;
+
+    if((j = list_contain_str(mboot_cmd, "--root")) != -1)
+    {
+        if(j > list_size(mboot_cmd))
+        {
+            printf("[KERNEL] Device path is not in arguments.\n");
+        }
+        else
+        {
+            char* root = (list_get_node_by_index(mboot_cmd, j+1)->val);
+            mount(root, "/");
+        }
+    }
+
+    init_shell();
     printf("\nSectorOS shell v1.3.3\nRun help to get the list of commands.\n#/> ");
 
     while(1);

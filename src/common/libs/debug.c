@@ -3,7 +3,7 @@
 
 void kernel_panic(const char* message)
 {
-    text_chcolor(VGA_LIGHT_RED, VGA_BLACK);
+    text_chcolor(VGA_LIGHT_RED, text_getBG());
     printf("kernel panic: - %s\n", message);
     while(1);
 }

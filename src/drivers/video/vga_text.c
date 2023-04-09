@@ -116,6 +116,16 @@ void text_chcolor(uint8_t fg, uint8_t bg)
     textmode.fg = fg;
 }
 
+uint8_t text_getBG()
+{
+    return textmode.bg;
+}
+
+uint8_t text_getFG()
+{
+    return textmode.fg;
+}
+
 void text_puts(char* str)
 {
     while(*str)

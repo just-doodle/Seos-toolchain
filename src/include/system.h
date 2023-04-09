@@ -42,7 +42,7 @@ typedef unsigned long ul_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "4.23.04.3NR"
+#define KERNEL_VERSION "5.23.04.4NR"
 
 #define KB 1024
 #define MB (1024*KB)

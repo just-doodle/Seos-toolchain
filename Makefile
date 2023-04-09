@@ -59,6 +59,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/interrupts/interrupt_helper.o \
 			$(SRCDIR)/interrupts/exception.o \
 			$(SRCDIR)/interrupts/exception_helper.o \
+			$(SRCDIR)/interrupts/syscall.o \
 			$(SRCDIR)/common/libs/debug.o \
 			$(SRCDIR)/common/libs/string.o \
 			$(SRCDIR)/common/libs/printf.o \
@@ -79,6 +80,9 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/memory/paging.o \
 			$(SRCDIR)/memory/pmm.o \
 			$(SRCDIR)/process/usermode.o \
+			$(SRCDIR)/process/process.o \
+			$(SRCDIR)/process/context_switch.o \
+			$(SRCDIR)/process/elf_loader.o \
 			$(SRCDIR)/kernel/shell.o \
 			$(SRCDIR)/kernel/kernel.o
 
@@ -103,7 +107,7 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 	@echo 'set root=(cd)' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "$(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE)' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/rdisk0' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'module /boot/sorhd' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
@@ -127,7 +131,7 @@ sorfs_compile:
 	@echo '[CC] $(SRCDIR)/tools/sorfs.c => sorfs'
 	@gcc $(SRCDIR)/tools/sorfs.c -o sorfs
 
-$(IMAGEFILE): sorfs_compile
+$(IMAGEFILE): sorfs_compile create_test_program
 	@echo '[SORFS] $@'
 	./sorfs -c $@ $(wildcard $(FILESDIR)/*)
 
@@ -143,6 +147,9 @@ runkvmd: $(ISOFILE)
 stripd: $(EXECUTABLE)
 	@$(TOOLDIR)$(OBJCOPY) --only-keep-debug $(EXECUTABLE) debug.sym
 	@$(TOOLDIR)$(OBJCOPY) $(OBJCOPYFLAGS) $(EXECUTABLE)
+
+create_test_program:
+	$(CC) -nostdlib  $(SRCDIR)/tools/user.c -o files/app.elf 
 
 forcerun: clean iso run
 forcerund: clean iso rund

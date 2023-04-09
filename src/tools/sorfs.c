@@ -28,7 +28,7 @@ int getstr(char* str)
 		j++;
 	}
 	
-	str[j] = "\0";
+	str[j] = '\0';
 	return j;
 }
 

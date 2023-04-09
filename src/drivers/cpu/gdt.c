@@ -1,5 +1,6 @@
 #include "gdt.h"
 #include "bit.h"
+#include "debug.h"
 #include "isr.h"
 
 gdt_entry_t entries[GDT_MAX_ENTRIES];

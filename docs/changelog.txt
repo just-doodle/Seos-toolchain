@@ -135,3 +135,18 @@
 * Incremented kernel version
 * Updated Makefile
 * Updated README.md
+
+09-04-2023: 10:48 PM IST v5.23.04.4NR
+* Major update
+* Implemented Process manager with input support.
+* Implemented a ELF loader which loads static linked
+* Implemented a syscall handler
+* Added a sample program.
+* Added new command to the shell
+* Added new function to fetch bg and fg color
+* Implemented a function to get arguments from grub
+* Updated kernel.c
+* Updated Makefile
+* Updated README.md
+* Fixed some warnings the compiler outputted
+* Incremented kernel version

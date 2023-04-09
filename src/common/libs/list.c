@@ -122,6 +122,18 @@ int list_contain(list_t * list, void * val)
     return -1;
 }
 
+int list_contain_str(list_t* list, char* str)
+{
+    int index = 0;
+    foreach(listnode, list)
+    {
+        if(strcmp(listnode->val, str) == 0)
+            return index;
+        index++;
+    }
+    return -1;
+}
+
 listnode_t * list_get_node_by_index(list_t * list, int index)
 {
     if(index < 0 || index >= list_size(list))

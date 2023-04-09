@@ -12,12 +12,12 @@ uint8_t hibyte(uint16_t data)
 
 void set_hibyte(uint16_t* data, uint8_t num)
 {
-    data = (num << 8);
+    *data = (uint16_t)(num << 8);
 }
 
 void set_lobyte(uint16_t* data, uint8_t num)
 {
-    data = num;
+    *data = (uint16_t)num;
 }
 
 int get_bit(uint32_t data, int num)
