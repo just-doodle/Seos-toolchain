@@ -50,7 +50,8 @@ void init_rand()
     {
         printf("[RNG] No rdrand support, using PRNG.\n");
         seed(ticks);
-        for(int i = 0; i < ticks; i++)
+        uint32_t j = rand_range(0, 256);
+        for(int i = 0; i < j; i++)
             rand();
     }
 }

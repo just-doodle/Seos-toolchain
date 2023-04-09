@@ -23,13 +23,13 @@ typedef struct gdt_ptr
     uint32_t base;
 }__attribute__((packed))gdt_ptr_t;
 
-#define GDT_MAX_ENTRIES 5
+#define GDT_MAX_ENTRIES 8
 #define GDT_GET_USER_SELECTOR(idx) (idx | 0x03)
 
 extern gdt_entry_t entries[GDT_MAX_ENTRIES];
 
 void init_gdt();
-
+void gdt_reinit();
 void gdt_setGate(int32_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran);
 
 #endif /*__GDT_H__*/

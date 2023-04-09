@@ -46,6 +46,8 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/cpu/gdt_helper.o \
 			$(SRCDIR)/drivers/cpu/idt.o \
 			$(SRCDIR)/drivers/cpu/idt_helper.o \
+			$(SRCDIR)/drivers/cpu/tss.o \
+			$(SRCDIR)/drivers/cpu/tss_helper.o \
 			$(SRCDIR)/drivers/cpu/pic.o \
 			$(SRCDIR)/drivers/cpu/pit.o \
 			$(SRCDIR)/drivers/cpu/rdtsc.o \
@@ -76,6 +78,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/memory/kheap.o \
 			$(SRCDIR)/memory/paging.o \
 			$(SRCDIR)/memory/pmm.o \
+			$(SRCDIR)/process/usermode.o \
 			$(SRCDIR)/kernel/shell.o \
 			$(SRCDIR)/kernel/kernel.o
 
@@ -133,6 +136,9 @@ run: $(ISOFILE)
 
 rund: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS)
+
+runkvmd: $(ISOFILE)
+	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS) -enable-kvm -cpu host
 
 stripd: $(EXECUTABLE)
 	@$(TOOLDIR)$(OBJCOPY) --only-keep-debug $(EXECUTABLE) debug.sym

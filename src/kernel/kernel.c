@@ -19,8 +19,10 @@
 #include "vfs.h"
 #include "devfs.h"
 #include "mount.h"
+#include "tss.h"
+#include "usermode.h"
 
-#define MOTD_NUM 4
+#define MOTD_NUM 3
 
 void print_motd(int idx)
 {
@@ -34,6 +36,7 @@ void print_motd(int idx)
         break;
     case 3:
         printf("   _____           __             ____ _____       ____ _       ____ __\n  / ___/___  _____/ /_____  _____/ __ / ___/      / __ | |     / / // /\n  \\__ \\/ _ \\/ ___/ __/ __ \\/ ___/ / / \\__ \\______/ /_/ | | /| / / // /_\n ___/ /  __/ /__/ /_/ /_/ / /  / /_/ ___/ /_____/ _, _/| |/ |/ /__  __/\n/____/\\___/\\___/\\__/\\____/_/   \\____/____/     /_/ |_| |__/|__/  /_/   \n                                                                       \n");
+        break;
     default:
         printf("SectorOS-RW4\n");
         break;
@@ -60,12 +63,13 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     init_gdt();
     init_idt();
+    init_tss(0x05, 0x10, 0);
+
     init_pic();
 
 	init_pit();
 
     enable_interrupts();
-
     init_shell();
     init_keyboard();
 
@@ -74,6 +78,10 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     init_vfs();
     init_devfs();
     init_ata_pio();
+
+    uint32_t esp;
+    asm volatile("mov %%esp, %0" : "=r"(esp));
+    tss_set_kernel_stack(0x10, esp);
 
     printf("Multiboot info:\n\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", info->boot_loader_name, info->cmdline, (info->mem_upper / 1024));
 
@@ -97,6 +105,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         multiboot_module_t* mods = (multiboot_module_t*)info->mods_addr;
         printf("[MULTIBOOT] mods name: %s\n", mods[0].cmdline);
         alloc_region(kernel_page_dir, mods[0].mod_start, mods[0].mod_end, 1, 1, 1);
+        xxd(mods[0].mod_start, (mods[0].mod_end - mods[0].mod_start));
         serialprintf("Ramdisk created\n");
         add_ramdisk(mods[0].mod_start, mods[0].mod_end, 1);
     }
@@ -114,7 +123,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     {
         printf("[KERNEL] One module is loaded by the bootloader. The module can be accessed via /dev/rdisk0.\nTo mount the drive: mount /dev/rdisk0 [Mountpoint].\n");
     }
-    printf("\nSectorOS Kernel v1.3.2\nRun help to get the list of commands.\n#/> ");
+    printf("\nSectorOS shell v1.3.3\nRun help to get the list of commands.\n#/> ");
 
     while(1);
 }

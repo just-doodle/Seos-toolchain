@@ -1,13 +1,26 @@
 #include "gdt.h"
+#include "bit.h"
+#include "isr.h"
 
 gdt_entry_t entries[GDT_MAX_ENTRIES];
 gdt_ptr_t ptr;
 
+void gdt_handler(registers_t* registers)
+{
+    uint32_t ecode = registers->ecode;
+    int External = get_bit(ecode, 0);
+    int table = get_bit(ecode, 1);
+    int index = (ecode >> 2) & 13;
+
+    printf("This fault was happened %s inside %s entry #%d.\n", External == 0 ? "internally" : "externally", (table == 0b00 ? "GDT" : (table == 0b01) ? "IDT" : (table == 0b10) ? "LDT" : "Unknown"), index);
+    kernel_panic("GPF");
+}
+
 void init_gdt()
 {
     printf("[GDT] Configuring GDT pointer...\n");
-    ptr.limit = (sizeof(gdt_entry_t) * GDT_MAX_ENTRIES) - 1;
-    ptr.base  = (uint32_t)&entries;
+    ptr.limit = (sizeof(entries)) - 1;
+    ptr.base  = (uint32_t)entries;
 
     printf("[GDT] Adding entries...\n");
 
@@ -21,7 +34,23 @@ void init_gdt()
 
     flush_gdt((uint32_t)&ptr);
 
+    register_interrupt_handler(15, gdt_handler);
+
     printf("[GDT] Initialized successfully\n");
+}
+
+void gdt_reinit()
+{
+    ptr.limit = (sizeof(gdt_entry_t) * GDT_MAX_ENTRIES) - 1;
+    ptr.base  = (uint32_t)&entries;
+
+    gdt_setGate(0, 0, 0, 0, 0);
+    gdt_setGate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);
+    gdt_setGate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
+    gdt_setGate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);
+    gdt_setGate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);
+
+    flush_gdt((uint32_t)&ptr);
 }
 
 void gdt_setGate(int32_t index, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran)

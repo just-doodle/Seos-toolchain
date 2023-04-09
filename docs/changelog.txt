@@ -123,3 +123,15 @@
 * Updated Makefile
 * Updated kernelmain.c
 * Incremented kernel version
+
+09-04-2023: 05:06 PM IST v4.23.04.3NR
+* Implemented a function for switching to usermode
+* Implemented task state segment
+* Added new functions to gdt.c and idt.c to reinitialize the gdt and idt
+* Fixed a bug in gdt.c
+* Added new functions in bit.c
+* Updated math.c
+* Updated kernel.c
+* Incremented kernel version
+* Updated Makefile
+* Updated README.md

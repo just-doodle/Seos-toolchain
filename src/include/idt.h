@@ -21,6 +21,7 @@ typedef struct idt_ptr
 } __attribute__((packed)) idt_ptr_t;
 
 void init_idt();
+void idt_reinit();
 void set_idtGate(uint8_t num, uint32_t base, uint16_t selector, uint8_t flags);
 
 #endif /*__IDT_H__*/

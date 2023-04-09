@@ -290,7 +290,9 @@ void shell_f()
         }
     }
 
+    printf("Unknown command: %s\n", list_get_node_by_index(args, 0)->val);
     clear_buffer();
+    printf("#/> ");
 }
 
 void shell_callback(uint8_t scancode)
