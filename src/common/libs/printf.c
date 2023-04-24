@@ -1,5 +1,6 @@
 #include "printf.h"
 #include "serial.h"
+#include "vidtext.h"
 
 int is_fmt_letter(char c)
 {
@@ -150,6 +151,7 @@ void printf(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     vsprintf(NULL, text_putc, fmt, args);
+    vidtext_vprintf(fmt, args);
     va_end(args);
 }
 

@@ -86,7 +86,10 @@ uint32_t kmalloc_int(uint32_t size, int align, uint32_t* paddr)
 
 void* kmalloc_a(uint32_t size)
 {
-    return (void*)kmalloc_int(size, 1, 0);
+    asm("cli");
+    void* ret = (void*)kmalloc_int(size, 1, 0);
+    asm("sti");
+    return ret;
 }
 
 uint32_t kmalloc_p(uint32_t size, uint32_t* paddr)
@@ -101,17 +104,25 @@ uint32_t kmalloc_ap(uint32_t size, uint32_t* paddr)
 
 void* kmalloc(uint32_t size)
 {
-    return (void*)kmalloc_int(size, 0, 0);
+    asm("cli");
+    void* ret = (void*)kmalloc_int(size, 0, 0);
+    asm("sti");
+    return ret;
 }
 
 void kfree(void* ptr)
 {
+    asm("cli");
     free(ptr);
+    asm("sti");
 }
 
 void* krealloc(void* ptr, uint32_t size)
 {
-    return realloc(ptr, size);
+    asm("cli");
+    void* ret = realloc(ptr, size);
+    asm("sti");
+    return ret;
 }
 
 void init_kheap(void* start, void* end, void* max)
@@ -122,6 +133,7 @@ void init_kheap(void* start, void* end, void* max)
     heap_max = max;
     heap_curr = start;
     Kheap_enabled = true;
+    serialprintf("[KHEAP] HEAP:\n\t-START: 0x%06x\n\t-END: 0x%06x\n\t-MAX: 0x%06x\n", start, end, max);
     printf("[KHEAP] Kernel Heap Initialized\n");
 }
 
@@ -131,6 +143,38 @@ uint32_t getRealSize(uint32_t size)
 }
 
 //void print_db() Will implement
+
+void db_print() {
+    if(!head) {serialprintf("your heap is empty now\n");return;}
+    //serialprintf("HEAP:\n");
+    uint32_t total = 0;
+    uint32_t total_overhead = 0;
+    memory_block_t * curr = head;
+    while(1) {
+        // print it
+        char c = 'A';
+        if(isFree(curr)) c = 'F';
+        uint32_t a = getRealSize(curr->size);
+        serialprintf("| %u |.%c.| %u |\n", a, c, a);
+        total = total + getRealSize(curr->size);
+        total_overhead = total_overhead + OVERHEAD;
+        if(isEnd(curr)) break;
+        void * ptr = (void*)curr + OVERHEAD + getRealSize(curr->size);
+        curr = ptr;
+    }
+    serialprintf("\n total usable bytes: %d", total);
+    serialprintf("\n total overhead bytes: %d", total_overhead);
+    serialprintf("\n total bytes: %d", total + total_overhead);
+    serialprintf("\nfreelist: ");
+
+    memory_block_t * ite = freeList;
+    while(ite) {
+        serialprintf("(%p)->", ite);
+        ite = ite->next;
+    }
+    serialprintf("\n\n");
+    return;
+}
 
 int isEnd(memory_block_t* block)
 {
@@ -154,7 +198,7 @@ void setFree(uint32_t *size, int x)
 
 int isFree(memory_block_t* block)
 {
-    if(!block)
+    if(block == NULL)
         return 0;
     return (block->size & 0x1);
 }
@@ -314,6 +358,11 @@ void free(void* ptr)
     memory_block_t* curr = ptr - sizeof(memory_block_t);
     memory_block_t* prev = getPrevBlock(curr);
     memory_block_t* next = getNextBlock(curr);
+    //serialprintf("[DYNMALLOC] PREV: 0x%06x%s | CURR: 0x%06x%s | NEXT: 0x%06x%s\n", (uint32_t)prev, (((uint32_t)prev) > ((uint32_t)heap_max) ? "!" : (((uint32_t)prev) < ((uint32_t)heap_start) ? "!!" : "\0")), (uint32_t)curr, (((uint32_t)curr) > ((uint32_t)heap_max) ? "!" : (((uint32_t)curr) < ((uint32_t)heap_start) ? "!!" : "\0")), (uint32_t)next, (((uint32_t)next) > ((uint32_t)heap_max) ? "!" : (((uint32_t)next) < ((uint32_t)heap_start) ? "!!" : "\0")));
+    if(isMemoryPaged(kernel_page_dir, prev) == 0)
+        prev = NULL;
+    if(isMemoryPaged(kernel_page_dir, next) == 0)
+        next = NULL;
     if(isFree(prev) && isFree(next))
     {
         prev->size = getRealSize(prev->size) + 2*OVERHEAD + getRealSize(curr->size) + getRealSize(next->size);

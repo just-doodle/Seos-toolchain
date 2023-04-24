@@ -84,6 +84,8 @@ void enable_paging();
 
 void* ksbrk(uint32_t size);
 
+int isMemoryPaged(page_directory_t* dir, void* vaddr);
+
 void copy_page_dir(page_directory_t* dest, page_directory_t* src);
 page_table_t* copy_page_table(page_directory_t * src_page_dir, page_directory_t * dst_page_dir, uint32_t page_dir_idx, page_table_t * src);
 

@@ -19,8 +19,6 @@ void init_pic()
 void pic_eoi(uint8_t irq)
 {
     if(irq >= 0x28)
-    {
         outb(PIC2_COMMAND, PIC_EOI);
-    }
     outb(PIC1_COMMAND, PIC_EOI);
 }

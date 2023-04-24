@@ -14,7 +14,7 @@
 #define SORFS_BLOCK_MAGIC 0x528fd70c
 
 #define SORFS_REG 	0
-#define SORFS_LNK	 1
+#define SORFS_LNK	1
 #define SORFS_DIRP	2
 #define SORFS_DIRC	3
 

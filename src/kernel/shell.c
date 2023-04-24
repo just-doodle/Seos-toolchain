@@ -6,6 +6,7 @@
 #include "mount.h"
 #include "ramdisk.h"
 #include "process.h"
+#include "stdout.h"
 
 shellcmd_t cmds[256];
 int c_cmds = 0;
@@ -235,8 +236,24 @@ int s_elf(list_t* args)
         return 1;
     }
 
+    char* file_name = list_get_node_by_index(args, 1)->val;
+    char** argv = zalloc(sizeof(uint32_t)*argc);
+    int j;
+    for(j = 2; j < argc; j++)
+    {
+        listnode_t* l = list_get_node_by_index(args, j);
+        argv[j-2] = zalloc(strlen(l->val));
+        strcpy(argv[j-2], l->val);
+    }
+    argv[j++] = NULL;
+    execve(file_name, argv, NULL);
+    return 0;
+}
+
+int s_return(list_t* args)
+{
     change_keyboard_handler(process_kbh);
-    create_process(list_pop(args)->val);
+    printf("Returned to program.\n");
     return 0;
 }
 
@@ -252,7 +269,7 @@ void getCMD(char* cmd, char* help, shellcmdf_t function)
 void init_shell()
 {
     sbindx = 0;
-    shell_buffer = kcalloc(sbsize, 1);
+    shell_buffer = zalloc(sbsize);
 
     change_keyboard_handler(shell_callback);
 
@@ -282,6 +299,7 @@ void init_shell()
     getCMD("create_ramdisk", "Creates ramdisk of given file in /dev/ directory", s_ramdisk);
     getCMD("color", "Changes the text color. Only use decimal numbers.", s_chcolor);
     getCMD("loadelf", "Loads the given ELF file.", s_elf);
+    getCMD("return", "Returns to current process. If there is not then the kernel will halt.", s_return);
 }
 
 void clear_buffer()
@@ -290,10 +308,12 @@ void clear_buffer()
     sbindx = 0;
 }
 
+uint32_t k = 0;
+
 void shell_f()
 {
     shell_buffer[sbindx] = '\0';
-    list_t *args = str_split(strdup(shell_buffer), " ", NULL);
+    list_t *args = str_split(strndup(shell_buffer, sbindx), " ", NULL);
     for(int i = 0; i < c_cmds; i++)
     {
         if(strcmp(list_get_node_by_index(args, 0)->val, cmds[i].cmd) == 0)
@@ -328,7 +348,7 @@ void shell_callback(uint8_t scancode)
         return;
     }
     if(c == '\b')
-        sbindx--;
+        shell_buffer[sbindx--] = 0;
     else
         shell_buffer[sbindx++] = c;
 }

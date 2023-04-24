@@ -297,6 +297,7 @@ uint32_t ata_pio_read(vfs_node* node, uint32_t offset, uint32_t size, char* buff
             read_size = end_offset - off + 1;
 
         memcpy(buf_curr, ret + off, read_size);
+        free(ret);
         buf_curr = buf_curr + read_size;
         total = total + read_size;
         counter++;

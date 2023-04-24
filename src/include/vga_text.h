@@ -43,7 +43,6 @@ void text_puts(char* str);
 
 void text_chcolor(uint8_t fg, uint8_t bg);
 void text_clear();
-void move_cursor();
 
 uint8_t text_getBG();
 uint8_t text_getFG();

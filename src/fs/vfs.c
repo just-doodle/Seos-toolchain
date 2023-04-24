@@ -93,6 +93,7 @@ uint32_t vfs_read(vfs_node *node, uint32_t offset, uint32_t size, char *buffer)
     return -1;
 }
 
+
 uint32_t find_fs(char* device)
 {
     if(isSORFS(device) == 1)

@@ -1,4 +1,5 @@
 #include "sorfs.h"
+#include "math.h"
 
 #define MAXLIST 100
 
@@ -45,6 +46,27 @@ uint32_t get_size(FILE * f)
 	uint32_t sz = ftell(f);
 	fseek(f, 0L, SEEK_SET);
 	return sz;
+}
+
+int pad(char* path)
+{
+	FILE* in = fopen(path, "rb+");
+	uint32_t size = get_size(in);
+	if(size % 512 != 0)
+	{
+		uint32_t p = size % 512;
+		uint32_t m = (size - p)/512;
+		uint32_t pd = (m+1)*512;
+		uint32_t ppd = pd - size;
+		fseek(in, 0, SEEK_END);
+		char* b = malloc(ppd);
+		memset(b, 0, ppd);
+		fwrite(b, ppd, 1, in);
+		fclose(in);
+		free(b);
+		return 0;
+	}
+	return 1;
 }
 
 int create_sorfs(char **files, char *out)
@@ -109,6 +131,8 @@ int create_sorfs(char **files, char *out)
 	fclose(of);
 	free(fb);
 	free(blk);
+
+	pad(out);
 	
 	printf("Created new sorfs image %s\n", out);
 

@@ -1,0 +1,111 @@
+diff -ur bu/bfd/config.bfd butl/bfd/config.bfd
+--- bfd/config.bfd	2023-01-14 05:30:00.000000000 +0530
++++ bfd/config.bfd	2023-04-11 23:39:32.710320000 +0530
+@@ -350,6 +350,19 @@
+     ;;
+ #endif /* BFD64 */
+ 
++  i[3-7]86-*-sectoros*)
++    targ_defvec=i386_elf32_vec
++    targ_selvecs=
++    targ64_selvecs=x86_64_elf64_vec
++    ;;
++#ifdef BFD64
++  x86_64-*-sectoros*)
++    targ_defvec=x86_64_elf64_vec
++    targ_selvecs=i386_elf32_vec
++    want64=true
++    ;;
++#endif
++
+   am33_2.0-*-linux*)
+     targ_defvec=am33_elf32_linux_vec
+     ;;
+diff -ur bu/config.sub butl/config.sub
+--- config.sub	2023-01-14 05:30:00.000000000 +0530
++++ config.sub	2023-04-11 23:33:14.347595000 +0530
+@@ -1723,7 +1723,7 @@
+ 	# Now accept the basic system types.
+ 	# The portable systems comes first.
+ 	# Each alternative MUST end in a * to match a version number.
+-	gnu* | android* | bsd* | mach* | minix* | genix* | ultrix* | irix* \
++	gnu* | sectoros* | android* | bsd* | mach* | minix* | genix* | ultrix* | irix* \
+ 	     | *vms* | esix* | aix* | cnk* | sunos | sunos[34]* \
+ 	     | hpux* | unos* | osf* | luna* | dgux* | auroraux* | solaris* \
+ 	     | sym* |  plan9* | psp* | sim* | xray* | os68k* | v88r* \
+diff -ur gas/configure.tgt butl/gas/configure.tgt
+--- gas/configure.tgt	2023-01-14 05:30:00.000000000 +0530
++++ gas/configure.tgt	2023-04-11 23:41:55.633532000 +0530
+@@ -226,6 +226,7 @@
+   i386-*-beos*)				fmt=elf ;;
+   i386-*-elfiamcu)			fmt=elf arch=iamcu ;;
+   i386-*-elf*)				fmt=elf ;;
++  i386-*-sectoros*)    			fmt=elf em=gnu ;;
+   i386-*-fuchsia*)			fmt=elf ;;
+   i386-*-haiku*)			fmt=elf em=haiku ;;
+   i386-*-genode*)			fmt=elf ;;
+diff -ur bu/ld/configure.tgt butl/ld/configure.tgt
+--- ld/configure.tgt	2023-01-14 05:30:00.000000000 +0530
++++ ld/configure.tgt	2023-04-12 09:16:28.614581000 +0530
+@@ -84,6 +84,15 @@
+ aarch64_be-*-elf)	targ_emul=aarch64elfb
+ 			targ_extra_emuls="aarch64elf aarch64elf32 aarch64elf32b armelfb armelf"
+ 			;;
++i[3-7]86-*-sectoros*)
++			targ_emul=elf_i386_sectoros
++			targ_extra_emuls=elf_i386
++			targ64_extra_emuls="elf_x86_64_sectoros elf_x86_64"
++			;;
++x86_64-*-sectoros*)
++			targ_emul=elf_x86_64_sectoros
++			targ_extra_emuls="elf_i386_sectoros elf_x86_64 elf_i386"
++			;;
+ aarch64-*-elf | aarch64-*-rtems* | aarch64-*-genode*)
+ 			targ_emul=aarch64elf
+ 			targ_extra_emuls="aarch64elf32 aarch64elf32b aarch64elfb armelf armelfb"
+@@ -1140,6 +1149,10 @@
+ 
+ *-*-linux*)
+   ;;
++  
++*-*-sectoros*)
++  NATIVE_LIB_DIRS='/opt/neocross/usr/lib /lib /usr/lib'
++  ;;
+ 
+ *-*-netbsd*)
+   ;;
+diff -ur bu/ld/Makefile.am butl/ld/Makefile.am
+--- ld/Makefile.am	2023-01-14 05:30:00.000000000 +0530
++++ ld/Makefile.am	2023-04-12 13:02:20.434179000 +0530
+@@ -275,6 +275,7 @@
+ 	eelf32xtensa.c \
+ 	eelf32z80.c \
+ 	eelf_i386.c \
++	eelf_i386_sectoros.c \
+ 	eelf_i386_be.c \
+ 	eelf_i386_fbsd.c \
+ 	eelf_i386_haiku.c \
+@@ -454,6 +455,7 @@
+ 	eelf64tilegx_be.c \
+ 	eelf_mipsel_haiku.c \
+ 	eelf_x86_64.c \
++	eelf_x86_64_sectoros.c
+ 	eelf_x86_64_cloudabi.c \
+ 	eelf_x86_64_fbsd.c \
+ 	eelf_x86_64_haiku.c \
+@@ -770,6 +772,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32xtensa.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32z80.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386.Pc@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_sectoros.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_be.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_fbsd.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_haiku.Pc@am__quote@
+@@ -946,6 +949,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf64tilegx_be.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_mipsel_haiku.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64.Pc@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_sectoros.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_cloudabi.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_fbsd.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_haiku.Pc@am__quote@

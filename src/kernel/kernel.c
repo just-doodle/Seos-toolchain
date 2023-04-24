@@ -23,6 +23,12 @@
 #include "usermode.h"
 #include "syscall.h"
 #include "process.h"
+#include "stdout.h"
+#include "sse.h"
+#include "vesa.h"
+#include "commanddev.h"
+#include "compositor.h"
+
 
 #define MOTD_NUM 3
 
@@ -48,15 +54,14 @@ void print_motd(int idx)
 void usp2()
 {
     SYSCALL_CLEAR
-    SYSCALL_PUTCHAR('W');
+    SYSCALL_PUTC('W');
     SYSCALL_EXIT(0)
 }
 
 void usp()
 {
     SYSCALL_CLEAR
-    SYSCALL_PUTCHAR('H');
-    SYSCALL_CREATE_PROCESS_FUN("USP2", usp2)
+    SYSCALL_PUTC('H');
     while(1);
 }
 
@@ -69,6 +74,8 @@ void rand_motd()
 
 list_t* mboot_cmd;
 
+int no_process = 0;
+
 void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 {
     init_serial(COM1, 1);
@@ -77,13 +84,12 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     text_chcolor(VGA_WHITE, VGA_LIGHT_BLUE);
     text_clear();
 
-    init_pmm(info->mem_upper * 1024);
+    init_pmm(1024 * info->mem_upper);
     init_paging();
     init_kheap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_MAX_ADDRESS);
 
     init_gdt();
     init_idt();
-    init_tss(0x05, 0x10, 0);
 
     init_pic();
 
@@ -91,9 +97,19 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     init_syscall();
 
-    init_processManager();
-
     mboot_cmd = str_split(((char*)info->cmdline), " ", NULL);
+
+    int q = 0;
+    if((q = list_contain_str(mboot_cmd, "--no_process")) != -1)
+    {
+        no_process = 1;
+    }
+
+    if(no_process == 0)
+        init_tss(0x05, 0x10, 0);
+
+    if(no_process == 0)
+        init_processManager();
 
     enable_interrupts();
     init_keyboard();
@@ -103,10 +119,39 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     init_vfs();
     init_devfs();
     init_ata_pio();
+    init_stdout();
+
+    if(info->mods_count > 0)
+    {
+        printf("[MULTIBOOT] mods count: %d\n", info->mods_count);
+        multiboot_module_t* mods = (multiboot_module_t*)info->mods_addr;
+        printf("[MULTIBOOT] mods name: %s\n", mods[0].cmdline);
+        alloc_region(kernel_page_dir, mods[0].mod_start, mods[0].mod_end, 1, 1, 1);
+        uint32_t modsize = mods[0].mod_end - mods[0].mod_start;
+        char* modbuf = zalloc(modsize);
+        memcpy(modbuf, mods[0].mod_start, modsize);
+        serialprintf("Ramdisk created\n");
+        add_ramdisk(modbuf, modbuf+modsize, 1);
+    }
+
+    FILE* stdout = file_open("/dev/stdout", 0);
+    vfs_write(stdout, 0, 0, "Hello STDOUT is working\n");
+
+    enable_sse();
+    enable_fast_memcpy();
+
+    init_vesa(info);
+
+    init_ifb();
+
+    init_compositor();
+
+    init_vidtext(rgb(245, 212, 223));
 
     uint32_t esp;
     asm volatile("mov %%esp, %0" : "=r"(esp));
-    tss_set_kernel_stack(0x10, esp);
+    if(no_process == 0)
+        tss_set_kernel_stack(0x10, esp);
 
     printf("Multiboot info:\n\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", info->boot_loader_name, info->cmdline, (info->mem_upper / 1024));
 
@@ -117,23 +162,16 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     init_rand();
 
+    db_print();
+
+    init_commanddev();
+
     char* test = "Hello User!\n";
 
     init_kernelfs();
     kernelfs_add_variable("test", test, strlen(test), KERNELFS_TYPE_STRING);
 
     print_cpu_info();
-
-    if(info->mods_count > 0)
-    {
-        printf("[MULTIBOOT] mods count: %d\n", info->mods_count);
-        multiboot_module_t* mods = (multiboot_module_t*)info->mods_addr;
-        printf("[MULTIBOOT] mods name: %s\n", mods[0].cmdline);
-        alloc_region(kernel_page_dir, mods[0].mod_start, mods[0].mod_end, 1, 1, 1);
-        xxd((void*)mods[0].mod_start, (mods[0].mod_end - mods[0].mod_start));
-        serialprintf("Ramdisk created\n");
-        add_ramdisk(mods[0].mod_start, mods[0].mod_end, 1);
-    }
 
     printf("rand: ");
     for(int i = 0; i < 10; i++)
@@ -164,7 +202,12 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         }
     }
 
+    vidtext_clear();
+
     init_shell();
+
+    printf("[Kernel] warning: The page directory of the processes will not be freed because of a bug. This will cause memory leak.\n");
+
     printf("\nSectorOS shell v1.3.3\nRun help to get the list of commands.\n#/> ");
 
     while(1);

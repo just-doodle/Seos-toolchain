@@ -8,7 +8,7 @@ idt_ptr_t   idt_ptr;
 void init_idt()
 {
     printf("[IDT] Configuring IDT pointer...\n");
-    idt_ptr.limit = sizeof(idt_entry_t) * 256 - 1;
+    idt_ptr.limit = (sizeof(idt_entry_t) * 256) - 1;
     idt_ptr.base  = (uint32_t)&idt_entries;
 
     memset(&idt_entries, 0, sizeof(idt_entry_t) * 256);

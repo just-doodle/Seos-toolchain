@@ -75,6 +75,7 @@ typedef struct vfs_node
     uint32_t inode_num;
     uint32_t size;
     uint32_t fs_type;
+    uint32_t dev_id;
     uint32_t open_flags;
 
     uint32_t last_modified;

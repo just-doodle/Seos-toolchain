@@ -2,6 +2,8 @@
 #include "vga_text.h"
 #include "debug.h"
 
+int isLessMSG = 0;
+
 char* exception_messages[] =
 {
     "Division By Zero",
@@ -42,25 +44,36 @@ void exception_handler(registers_t cps)
 {
     if(cps.ino < 32)
     {
-        text_chcolor(VGA_RED, VGA_BLACK);
-        printf("KERNEL PANIC. EXCEPTION %d: %s\n", cps.ino, exception_messages[cps.ino]);
-        printf("Extended stack pointer = 0x%06x\n", cps.esp);
-        printf("Extended instruction pointer  = 0x%06x\n", cps.eip);
-        printf("Code segment selector = 0x%06x\n", cps.cs);
-        printf("Extended flags = 0x%06x\n", cps.eflags);
-        printf("Error code = 0x%06x\n", cps.ecode);
-        printf("\n");
-        printf("Registers:\n");
-        printf("EAX = 0x%06x\n", cps.eax);
-        printf("EBX = 0x%06x\n", cps.ebx);
-        printf("ECX = 0x%06x\n", cps.ecx);
-        printf("EDX = 0x%06x\n", cps.edx);
-        printf("ESI = 0x%06x\n", cps.esi);
-        printf("EDI = 0x%06x\n", cps.edi);
-        printf("EBP = 0x%06x\n", cps.ebp);
-        stack_trace(10);
-        serialprintf("%s\n", exception_messages[cps.ino]);
-        text_chcolor(VGA_WHITE, VGA_BLACK);
+        if(isLessMSG)
+        {
+            text_chcolor(VGA_RED, VGA_BLACK);
+            printf("KERNEL PANIC. EXCEPTION %d: %s\n", cps.ino, exception_messages[cps.ino]);
+            printf("Extended stack pointer = 0x%06x\n", cps.esp);
+            printf("Extended instruction pointer  = 0x%06x\n", cps.eip);
+            serialprintf("%s\n", exception_messages[cps.ino]);
+        }
+        else
+        {
+            text_chcolor(VGA_RED, VGA_BLACK);
+            printf("KERNEL PANIC. EXCEPTION %d: %s\n", cps.ino, exception_messages[cps.ino]);
+            printf("Extended stack pointer = 0x%06x\n", cps.esp);
+            printf("Extended instruction pointer  = 0x%06x\n", cps.eip);
+            printf("Code segment selector = 0x%06x\n", cps.cs);
+            printf("Extended flags = 0x%06x\n", cps.eflags);
+            printf("Error code = 0x%06x\n", cps.ecode);
+            printf("\n");
+            printf("Registers:\n");
+            printf("EAX = 0x%06x\n", cps.eax);
+            printf("EBX = 0x%06x\n", cps.ebx);
+            printf("ECX = 0x%06x\n", cps.ecx);
+            printf("EDX = 0x%06x\n", cps.edx);
+            printf("ESI = 0x%06x\n", cps.esi);
+            printf("EDI = 0x%06x\n", cps.edi);
+            printf("EBP = 0x%06x\n", cps.ebp);
+            stack_trace(10);
+            serialprintf("%s\n", exception_messages[cps.ino]);
+            text_chcolor(VGA_WHITE, VGA_BLACK);
+        }
     }
 
     if(interrupt_handlers[cps.ino] != 0)
@@ -76,4 +89,9 @@ void exception_handler(registers_t cps)
     {
         kernel_panic("[ISR] Unhandled exception!");
     }
+}
+
+void less_exception()
+{
+    isLessMSG = !isLessMSG;
 }

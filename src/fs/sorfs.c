@@ -50,14 +50,19 @@ FILE* sorfs_BlockToVFSNode(sorfs_t* fs, uint32_t blockNum)
     f->close = sorfs_close;
     f->size = block->size;
     f->inode_num = blockNum;
+    f->creation_time = block->timestamp;
+    f->dev_id = fs->device->inode_num;
+    f->fs_type = FS_TYPE_SORFS;
 
     if(block->type == SORFS_DIRP)
     {
+        f->mask = _IFDIR;
         f->finddir = sorfs_finddir;
     }
 
     if(block->type == SORFS_REG)
     {
+        f->mask = _IFREG;
         f->read = sorfs_read;
         f->write = sorfs_write;
         f->get_filesize = sorfs_getFileSize;
@@ -69,7 +74,7 @@ FILE* sorfs_BlockToVFSNode(sorfs_t* fs, uint32_t blockNum)
 uint32_t sorfs_read(FILE* f, uint32_t offset, uint32_t size, char* buffer)
 {
     sorfs_t* fs = (sorfs_t*)f->device;
-    sorfs_block_t* block = kmalloc(sizeof(sorfs_block_t));
+    sorfs_block_t* block = zalloc(sizeof(sorfs_block_t));
     sorfs_readBlock(fs, f->inode_num, block);
     sorfs_readBlockContent(fs, block, offset, size, buffer);
     kfree(block);
@@ -127,11 +132,13 @@ FILE* sorfs_finddir(FILE* node, char* name)
 
 void sorfs_open(FILE* f, uint32_t flags)
 {
+    f->open_flags = flags;
     return;
 }
 
 void sorfs_close(FILE* f)
 {
+    free(f);
     return;
 }
 

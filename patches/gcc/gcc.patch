@@ -1,0 +1,88 @@
+diff -ur gcc/config.sub gc/config.sub
+--- config.sub	2022-08-19 13:39:52.128656000 +0530
++++ config.sub	2023-04-12 00:00:04.901101000 +0530
+@@ -1718,7 +1718,7 @@
+ 	# Now accept the basic system types.
+ 	# The portable systems comes first.
+ 	# Each alternative MUST end in a * to match a version number.
+-	gnu* | android* | bsd* | mach* | minix* | genix* | ultrix* | irix* \
++	gnu* | sectoros* | android* | bsd* | mach* | minix* | genix* | ultrix* | irix* \
+ 	     | *vms* | esix* | aix* | cnk* | sunos | sunos[34]* \
+ 	     | hpux* | unos* | osf* | luna* | dgux* | auroraux* | solaris* \
+ 	     | sym* |  plan9* | psp* | sim* | xray* | os68k* | v88r* \
+diff -ur gcc/fixincludes/mkfixinc.sh gc/fixincludes/mkfixinc.sh
+--- fixincludes/mkfixinc.sh	2022-08-19 13:39:52.160657000 +0530
++++ fixincludes/mkfixinc.sh	2023-04-12 13:16:26.692706000 +0530
+@@ -12,6 +12,8 @@
+ # Check for special fix rules for particular targets
+ case $machine in
+     i?86-*-cygwin* | \
++    *-sectoros* | \
++    *-*-sectoros* | \
+     i?86-*-mingw32* | \
+     x86_64-*-mingw32* | \
+     powerpc-*-eabisim* | \
+diff -ur gcc/gcc/config.gcc gc/gcc/config.gcc
+--- gcc/config.gcc	2022-08-19 13:39:52.552662000 +0530
++++ gcc/config.gcc	2023-04-12 00:05:32.403022000 +0530
+@@ -827,6 +827,12 @@
+ *-*-fuchsia*)
+   native_system_header_dir=/include
+   ;;
++*-*-sectoros*)
++  gas=yes
++  gnu_ld=yes
++  default_use_cxa_atexit=yes
++  use_gcc_stdint=provide
++  ;;
+ *-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu | *-*-uclinuxfdpiceabi)
+   extra_options="$extra_options gnu-user.opt"
+   gas=yes
+@@ -1519,6 +1525,12 @@
+ 	extra_gcc_objs="driver-avr.o avr-devices.o"
+ 	extra_objs="avr-devices.o avr-log.o"
+ 	;;
++i[34567]86-*-sectoros*)
++    tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h glibc-stdint.h i386/i386elf.h sectoros.h"
++    ;;
++x86_64-*-sectoros*)
++    tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h glibc-stdint.h i386/i386elf.h i386/x86-64.h sectoros.h"
++    ;;
+ bfin*-elf*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h bfin/elf.h"
+ 	tmake_file=bfin/t-bfin-elf
+diff -ur gcc/libgcc/config.host gc/libgcc/config.host
+--- libgcc/config.host	2022-08-19 13:39:54.664689000 +0530
++++ libgcc/config.host	2023-04-12 14:00:42.167848000 +0530
+@@ -708,6 +708,14 @@
+ 	tm_file="$tm_file i386/darwin-lib.h"
+ 	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
+ 	;;
++i[34567]86-*-sectoros*)
++	extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++	;;
++x86_64-*-sectoros*)
++	extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++	;;
+ i[34567]86-*-elfiamcu)
+ 	tmake_file="$tmake_file i386/t-crtstuff t-softfp-sfdftf i386/32/t-softfp i386/32/t-iamcu i386/t-softfp t-softfp t-dfprules"
+ 	;;
+diff -ur gcc/libstdc++-v3/crossconfig.m4 gc/libstdc++-v3/crossconfig.m4
+--- libstdc++-v3/crossconfig.m4	2022-08-19 13:39:55.420698000 +0530
++++ libstdc++-v3/crossconfig.m4	2023-04-12 13:12:25.515875000 +0530
+@@ -87,6 +87,13 @@
+     AC_DEFINE(HAVE_SINCOS)
+     AC_DEFINE(HAVE_HYPOT)
+     ;;
++    
++  *-sectoros*)
++    GLIBCXX_CHECK_COMPILER_FEATURES
++    GLIBCXX_CHECK_LINKER_FEATURES
++    GLIBCXX_CHECK_MATH_SUPPORT
++    GLIBCXX_CHECK_STDLIB_SUPPORT
++    ;;
+ 
+   *-freebsd*)
+     SECTION_FLAGS='-ffunction-sections -fdata-sections'

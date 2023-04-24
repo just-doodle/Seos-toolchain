@@ -5,7 +5,7 @@
 #include "stdbool.h"
 #include "multiboot.h"
 
-#define __USE_INBUILT_STDINT__ 0
+#define __USE_INBUILT_STDINT__ 1
 
 #if __USE_INBUILT_STDINT__
 typedef unsigned char uint8_t;
@@ -63,5 +63,24 @@ typedef struct registers
     uint32_t ino, ecode;
     uint32_t eip, cs, eflags, useresp, ss;
 } registers_t;
+
+typedef struct register16
+{
+    uint16_t di;
+    uint16_t si;
+    uint16_t bp;
+    uint16_t sp;
+    uint16_t bx;
+    uint16_t dx;
+    uint16_t cx;
+    uint16_t ax;
+
+    uint16_t ds;
+    uint16_t es;
+    uint16_t fs;
+    uint16_t gs;
+    uint16_t ss;
+    uint16_t eflags;
+}register16_t;
 
 #endif

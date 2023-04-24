@@ -17,8 +17,20 @@
 extern uint32_t ticks;
 extern uint16_t pit_frequency;
 
+typedef void (*wakeup_callback)(void);
+
+typedef struct 
+{
+    wakeup_callback callback;
+    double seconds;
+    uint32_t ticks;
+}wakeup_info_t;
+
 void init_pit();
 void pit_callback(registers_t *regs);
 void pit_chfrequency(uint16_t hz);
 void sleep(uint32_t ms);
+void pit_register(wakeup_callback callback, double seconds);
+uint32_t get_ticks();
+
 #endif /*__PIT_H__*/

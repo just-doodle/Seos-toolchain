@@ -1,25 +1,29 @@
 #include "string.h"
-#include "kheap.h"
-#include "printf.h"
 
-int strlen(const char* s)
-{
-    int ret = 0;
-    for(ret = 0; s[ret] != '\0'; ret++);
-    return ret;
-}
+int useFMEMCPY = 0;
 
-int memcmp(uint8_t* data1, uint8_t* data2, int n)
+int memcmp(uint8_t *data1, uint8_t *data2, int n)
 {
-    while(n--)
+    while (n--)
     {
-        if(*data1 != *data2)
+        if (*data1 != *data2)
             return 0;
-        
         data1++;
         data2++;
     }
     return 1;
+}
+
+void* fast_memset(void* d, int s, size_t c)
+{
+    void * temp = d;
+    __asm__ volatile (
+        "rep stosb"
+        :"=D"(d),"=c"(c)
+        :"0"(d),"a"(s),"1"(c)
+        :"memory"
+    );
+    return temp;
 }
 
 int memzero(uint8_t* data, size_t size)
@@ -28,114 +32,107 @@ int memzero(uint8_t* data, size_t size)
     {
         if(data[i] != 0)
         {
-            return 1;
+            return 0;
         }
     }
-    return 0;
-}
-
-void* memcpy(void* dst, const void* src, int n)
-{
-    char* ret = (char*)dst;
-    char* d = (char*)dst;
-    char* s = (char*)src;
-
-    while(n--)
-    {
-        *d = *s;
-        d++;
-        s++;
-    }
-
-    return ret;
-}
-
-void* memset(void* dst, char val, int n)
-{
-    char* ret = (char*)dst;
-    char* d = (char*)dst;
-
-    while(n--)
-    {
-        *d++ = val;
-    }
-
-    return (void*)ret;
-}
-
-int strcpy(char* dst, const char* src)
-{
-    int n = strlen(src);
-    int ret = n;
-
-    while(n--)
-    {
-        *dst++ = *src++;
-    }
-    return ret;
-}
-
-char* strncpy(char* dst, const char* src, int n)
-{
-    unsigned count;
-    if((dst == (char*)NULL) || (src == (char*)NULL))
-    {
-        return (dst = NULL);
-    }
-
-    if(n > 255)
-    {
-        n = 255;
-    }
-
-    for(count = 0; (int)count < n; count++)
-    {
-        dst[count] = src[count];
-
-        if(src[count] == '\0')
-            break;
-    }
-
-    if(count >= 255)
-    {
-        return (dst = NULL);
-    }
-
-    return dst;
-}
-
-int strcmp(const char* dst, char* src)
-{
-    int i = 0;
-    while(dst[i] == src[i])
-    {
-        if(src[i++] == 0)
-            return 0;
-    }
-
     return 1;
 }
 
-int strncmp(const char *s1, const char *s2, int c)
+void enable_fast_memcpy()
 {
-    int result = 0;
-
-    while (c)
-    {
-        result = *s1 - *s2++;
-
-        if ((result != 0) || (*s1++ == 0))
-        {
-            break;
-        }
-
-        c--;
-    }
-
-    return result;
+    useFMEMCPY = 1;
 }
 
-char* strstr(const char* in, const char* str)
+void *memcpy(void *dst, void const *src, int n)
+{
+    if(useFMEMCPY == 1)
+    {
+        fast_memcpy(dst, src, n);
+        return dst;
+    }
+    else
+    {
+        char *ret = (char*)dst;
+        char *p = (char*)dst;
+        const char *q = (char*)src;
+        while (n--)
+            *p++ = *q++;
+        return ret;
+    }
+}
+
+void *memset(void *dst, char val, int n)
+{
+    char *temp = (char*)dst;
+    for (; n != 0; n--)
+        *temp++ = val;
+    return dst;
+}
+
+uint16_t *memsetw(uint16_t *dest, uint16_t val, uint32_t count)
+{
+    uint16_t *temp = (uint16_t *)dest;
+    for (; count != 0; count--)
+        *temp++ = val;
+    return dest;
+}
+
+uint16_t *memsetdw(uint32_t *dest, uint32_t val, uint32_t count)
+{
+    uint32_t *temp = (uint32_t *)dest;
+    for (; count != 0; count--)
+        *temp++ = val;
+    return (uint16_t*)dest;
+}
+
+int strlen(const char *s)
+{
+    int len = 0;
+    while (*s++)
+        len++;
+    return len;
+}
+char *strncpy(char *destString, const char *sourceString, int maxLength)
+{
+    unsigned count;
+
+    if ((destString == (char *)NULL) || (sourceString == (char *)NULL))
+    {
+        return (destString = NULL);
+    }
+
+    if (maxLength > 255)
+        maxLength = 255;
+
+    for (count = 0; (int)count < (int)maxLength; count++)
+    {
+        destString[count] = sourceString[count];
+
+        if (sourceString[count] == '\0')
+            break;
+    }
+
+    if (count >= 255)
+    {
+        return (destString = NULL);
+    }
+
+    return (destString);
+}
+
+int strcmp(const char *dst, char *src)
+{
+    int i = 0;
+
+    while ((dst[i] == src[i]))
+    {
+        if (src[i++] == 0)
+            return 0;
+    }
+    return 1;
+}
+
+char *strstr(const char *in, const char *str)
 {
     char c;
     uint32_t len;
@@ -160,6 +157,13 @@ char* strstr(const char* in, const char* str)
     return (char *)(in - 1);
 }
 
+int strcpy(char *dst, const char *src)
+{
+    int i = 0;
+    while ((*dst++ = *src++) != 0)
+        i++;
+    return i;
+}
 
 void strcat(void *dest, const void *src)
 {
@@ -169,6 +173,24 @@ void strcat(void *dest, const void *src)
     *end = '\0';
 }
 
+int strncmp(const char *s1, const char *s2, int c)
+{
+    int result = 0;
+
+    while (c)
+    {
+        result = *s1 - *s2++;
+
+        if ((result != 0) || (*s1++ == 0))
+        {
+            break;
+        }
+
+        c--;
+    }
+
+    return result;
+}
 
 void itoa(char *buf, unsigned long int n, int base)
 {
@@ -240,7 +262,7 @@ char* itoa_r(unsigned long int n, int base)
 {
     unsigned long int tmp;
     int i, j;
-    char* buf = (char*)kmalloc(sizeof(char) * 32);
+    char* buf = (char*)zalloc(sizeof(char) * 32);
 
     tmp = n;
     i = 0;
@@ -351,15 +373,10 @@ void stoc(size_t n, char* buf)
 
 char* stoc_r(size_t n)
 {
-    return NULL;
-}
+    char* buffer = (char*)kmalloc(1024);
 
-void sprintf(char* buf, const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    vsprintf(buf, NULL, fmt, args);
-    va_end(args);
+    stoc(n, buffer);
+    return buffer;
 }
 
 list_t *str_split(const char *str, const char *delim, unsigned int *numtokens)
@@ -404,4 +421,13 @@ char *list2str(list_t *list, const char *delim)
         strcat(ret, temp);
     }
     return ret;
+}
+
+
+void sprintf(char *s, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    vsprintf(s, NULL, format, args);
+    va_end(args);
 }

@@ -38,7 +38,9 @@ isr_common:
     mov fs, ax
     mov gs, ax
 
+    push esp
     call isr_handler
+    pop esp
 
     pop ebx
     mov ds, bx

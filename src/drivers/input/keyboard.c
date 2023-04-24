@@ -1,6 +1,12 @@
 #include "keyboard.h"
+#include "process.h"
+#include "stdout.h"
 
 static keyboard_handler_t khandler = NULL;
+static keyboard_handler_t khandler2 = stdin_keybuff;
+static keyboard_handler_t khandler3 = process_kbh;
+
+static int use_khandler = 1;
 
 void init_keyboard()
 {
@@ -31,6 +37,25 @@ void change_keyboard_handler(keyboard_handler_t handler)
     }
 }
 
+void change_keyboard_handler2(keyboard_handler_t handler)
+{
+    if(handler == NULL)
+    {
+        printf("No keyboard handler given\n");
+        khandler2 = NULL;
+        return;
+    }
+    else
+    {
+        khandler2 = handler;
+    }
+}
+
+void use_handler(int state)
+{
+    use_khandler = state;
+}
+
 void keyboard_callback(registers_t *reg)
 {
     uint8_t scancode;
@@ -41,9 +66,13 @@ void keyboard_callback(registers_t *reg)
         break;
     }
 
+    khandler3(scancode);
     if(khandler != NULL)
     {
-        khandler(scancode);
+        if(use_khandler == 1)
+            khandler(scancode);
+        if(khandler2 != NULL)
+            khandler2(scancode);
     }
     else
     {
@@ -395,7 +424,8 @@ char kcodeTochar(uint8_t scancode)
     }
     else
     {
-        serialprintf("[KBD] GOT KEYPRESS: 0x%02x\n", scancode);
     }
+
+    //serialprintf("[KBD] GOT KEYPRESS: 0x%02x\n", scancode);
     return key;
 }

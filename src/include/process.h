@@ -13,6 +13,8 @@
 #include "isr.h"
 #include "pic.h"
 #include "keyboard.h"
+#include "filedescriptor.h"
+#include "commanddev.h"
 
 #define TASK_RUNNING            0
 #define TASK_INTERRUPTIBLE      1
@@ -51,6 +53,12 @@ typedef struct context
 
 typedef void (*process_kbhandler_t)(char, int, int, uint8_t);
 
+typedef struct pargs_struct
+{
+    char** argv;
+    int argc;
+}pargs_t;
+
 typedef struct process_control_block
 {
     char filename[512];
@@ -65,7 +73,16 @@ typedef struct process_control_block
     uint32_t type;
     uint32_t entrypoint;
 
-    uint32_t saved_address;
+    pargs_t args;
+    fd_t fds[FD_MAX];
+    uint32_t fd_num;
+
+    uint32_t page_dir_addr;
+
+    uint64_t ticks_on_start;
+
+    cdev_response_t* pending_response;
+
     process_kbhandler_t handler;
 }pcb_t;
 
@@ -78,11 +95,19 @@ void init_processManager();
 void change_process(pid_t pid);
 void exit(uint32_t ret);
 
+int kill(pid_t pid, uint32_t sig);
+
 pid_t alloc_pid();
 void create_process_from_routine(char* name, void* entrypoint, uint32_t type);
 void create_process(char* filename);
 
+// ENV does not work
+void execve(char* name, char** argv, char** env);
+
+pargs_t* get_args();
+
 void list_process();
+pid_t getpid();
 
 void user_regs_switch(context_t *regs2);
 void kernel_regs_switch(context_t * regs2);

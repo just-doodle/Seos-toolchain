@@ -4,6 +4,12 @@
 #include "system.h"
 #include "list.h"
 
+extern int useFMEMCPY;
+
+void enable_fast_memcpy();
+
+void fast_memcpy(char * dst, const char * src, uint32_t n); //* Implemented
+
 int memcmp(uint8_t *data1, uint8_t *data2, int n); //* Implemented
 void *memcpy(void *dst, const void *src, int n);   //* Implemented
 

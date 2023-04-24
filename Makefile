@@ -1,4 +1,4 @@
-TOOLDIR=/opt/cross/bin/
+TOOLDIR=~/sysroot/bin/
 SRCDIR=src/
 INCLUDEDIR=$(SRCDIR)/include/
 BACKUPDIR=$(SRCDIR)/../../BACKUP/
@@ -6,8 +6,10 @@ GRUBDIR=
 SCRIPTSDIR=$(SRCDIR)/scripts/
 FILESDIR=files
 
+OSTOOL_DIR=~/sysroot/usr/bin/
+
 CC=$(TOOLDIR)/i686-elf-gcc
-CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -Wall -m32 -g
+CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -g -O0
 
 CXX=$(TOOLDIR)/i686-elf-g++
 CXXFLAGS=
@@ -20,7 +22,7 @@ AS=$(TOOLDIR)/i686-elf-as
 ASFLAGS=
 
 NASM=nasm
-NASMFLAGS=-f elf32 -O0 -w+zeroing
+NASMFLAGS=-f elf32 -O0 -w+zeroing -g
 
 OBJCOPY = i686-elf-objcopy
 OBJDUMP = i686-elf-objdump
@@ -28,8 +30,8 @@ OBJDUMP = i686-elf-objdump
 OBJCOPYFLAGS = --strip-debug --strip-unneeded
 
 QEMU=qemu-system-i386
-QEMUFLAGS=-cdrom $(ISOFILE) -m 1024M -boot d
-QEMUDFLAGS=-serial file:serial.log -s -S -daemonize -m 64M
+QEMUFLAGS=-cdrom $(ISOFILE) -m 3098M -boot d -hda sorhd -serial stdio
+QEMUDFLAGS= -s -S -daemonize -m 64M
 
 PROJECT=SectorOS-RW4
 
@@ -41,6 +43,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/boot/boot.o \
 			$(SRCDIR)/drivers/io/ports.o \
 			$(SRCDIR)/drivers/io/pci.o \
+			$(SRCDIR)/drivers/io/stdout.o \
 			$(SRCDIR)/drivers/power/reboot.o \
 			$(SRCDIR)/drivers/cpu/gdt.o \
 			$(SRCDIR)/drivers/cpu/gdt_helper.o \
@@ -51,6 +54,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/cpu/pic.o \
 			$(SRCDIR)/drivers/cpu/pit.o \
 			$(SRCDIR)/drivers/cpu/rdtsc.o \
+			$(SRCDIR)/drivers/cpu/sse.o \
 			$(SRCDIR)/drivers/cpu/cpuinfo.o \
 			$(SRCDIR)/drivers/storage/atapio.o \
 			$(SRCDIR)/drivers/storage/mbr.o \
@@ -68,13 +72,27 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/common/libs/rng.o \
 			$(SRCDIR)/common/libs/list.o \
 			$(SRCDIR)/common/libs/tree.o \
+			$(SRCDIR)/common/libs/fast_memcpy.o \
 			$(SRCDIR)/fs/vfs.o \
 			$(SRCDIR)/fs/devfs.o \
 			$(SRCDIR)/fs/mount.o \
 			$(SRCDIR)/fs/sorfs.o \
 			$(SRCDIR)/fs/kernelfs.o \
+			$(SRCDIR)/fs/stat.o \
+			$(SRCDIR)/gui/draw.o \
+			$(SRCDIR)/gui/blend.o \
+			$(SRCDIR)/gui/targa.o \
+			$(SRCDIR)/gui/compositor.o \
+			$(SRCDIR)/drivers/video/ifb.o \
+			$(SRCDIR)/drivers/io/commanddev.o \
+			$(SRCDIR)/gui/bitmap.o \
+			$(SRCDIR)/gui/font/font.o \
+			$(SRCDIR)/gui/font/font_parser.o \
 			$(SRCDIR)/drivers/video/vga_text.o \
+			$(SRCDIR)/drivers/video/vesa.o \
+			$(SRCDIR)/drivers/video/vidtext.o \
 			$(SRCDIR)/drivers/io/serial.o \
+			$(SRCDIR)/drivers/time/rtc.o \
 			$(SRCDIR)/drivers/input/keyboard.o \
 			$(SRCDIR)/memory/kheap.o \
 			$(SRCDIR)/memory/paging.o \
@@ -82,7 +100,9 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/process/usermode.o \
 			$(SRCDIR)/process/process.o \
 			$(SRCDIR)/process/context_switch.o \
+			$(SRCDIR)/process/spinlock.o \
 			$(SRCDIR)/process/elf_loader.o \
+			$(SRCDIR)/process/filedescriptor.o \
 			$(SRCDIR)/kernel/shell.o \
 			$(SRCDIR)/kernel/kernel.o
 
@@ -107,7 +127,7 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 	@echo 'set root=(cd)' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "$(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/rdisk0' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'module /boot/sorhd' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
@@ -129,7 +149,7 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 
 sorfs_compile:
 	@echo '[CC] $(SRCDIR)/tools/sorfs.c => sorfs'
-	@gcc $(SRCDIR)/tools/sorfs.c -o sorfs
+	@/usr/bin/gcc $(SRCDIR)/tools/sorfs.c -o sorfs -lm
 
 $(IMAGEFILE): sorfs_compile create_test_program
 	@echo '[SORFS] $@'
@@ -149,7 +169,8 @@ stripd: $(EXECUTABLE)
 	@$(TOOLDIR)$(OBJCOPY) $(OBJCOPYFLAGS) $(EXECUTABLE)
 
 create_test_program:
-	$(CC) -nostdlib  $(SRCDIR)/tools/user.c -o files/app.elf 
+	@echo "[i686-sectoros-gcc] files/user.elf"
+	@$(OSTOOL_DIR)/i686-sectoros-gcc $(SRCDIR)/tools/user.c -o files/user.elf -g
 
 forcerun: clean iso run
 forcerund: clean iso rund

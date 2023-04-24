@@ -61,6 +61,7 @@ void devfs_add(FILE* node)
         return;
 
     nodes[num_nodes] = *node;
+    nodes[num_nodes].inode_num = num_nodes;
     num_nodes++;
     char* mountpoint = (char*)kcalloc(sizeof(char), 128);
     memset(mountpoint, 0, 128);
@@ -69,7 +70,7 @@ void devfs_add(FILE* node)
     strcat(mountpoint, node->name);
     printf("Mounting on %s\n", mountpoint);
 
-    vfs_mountDev(mountpoint, node);
+    //vfs_mountDev(mountpoint, node);
     kfree(mountpoint);
 }
 

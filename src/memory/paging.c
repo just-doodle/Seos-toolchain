@@ -34,6 +34,15 @@ void* virt2phys(page_directory_t* dir, void* vaddr)
     return (void*)t;
 }
 
+int isMemoryPaged(page_directory_t* dir, void* vaddr)
+{
+    void* ret = virt2phys(dir, vaddr);
+    if(ret == NULL)
+        return 0;
+    else
+        return 1;
+}
+
 void* d_kmalloc(uint32_t size, int align)
 {
     void * ret = temp_mem;
@@ -312,7 +321,18 @@ void page_fault_handler(registers_t* regs)
     if(inst_fetch) printf("Instruction fetch ");
     printf("]\n");
 
+    serialprintf("Possible causes: [ ");
+    if(!present) serialprintf("Page not present ");
+    if(rw) serialprintf("Page is read only ");
+    if(user) serialprintf("Page is read only ");
+    if(reserved) serialprintf("Overwrote reserved bits ");
+    if(inst_fetch) serialprintf("Instruction fetch ");
+    serialprintf("]\n");
+
     printf("Faulting address: 0x%x\n", faulting_addr);
     printf("Faulting virtual address: 0x%x\n", faulting_vaddr);
+
+    serialprintf("Faulting address: 0x%x\n", faulting_addr);
+    serialprintf("Faulting virtual address: 0x%x\n", faulting_vaddr);
     kernel_panic("Page fault");
 }

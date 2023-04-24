@@ -27,6 +27,7 @@ user_regs_switch:
 
     mov eax, [ebp + 0]
     mov ebp, [ebp + 20]
+    
     iret
 
 kernel_regs_switch:

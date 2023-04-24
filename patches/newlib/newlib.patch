@@ -1,0 +1,36 @@
+diff -bur --strip newlib/config.sub nc/config.sub
+--- config.sub	2017-12-19 23:28:06.000000000 +0530
++++ config.sub	2023-04-11 19:34:39.737079000 +0530
+@@ -1373,7 +1373,7 @@
+ 	# The portable systems comes first.
+ 	# Each alternative MUST END IN A *, to match a version number.
+ 	# -sysv* is not here because it comes later, after sysvr4.
+-	-gnu* | -bsd* | -mach* | -minix* | -genix* | -ultrix* | -irix* \
++	-gnu* | -sectoros*  | -bsd* | -mach* | -minix* | -genix* | -ultrix* | -irix* \
+ 	      | -*vms* | -sco* | -esix* | -isc* | -aix* | -cnk* | -sunos | -sunos[34]*\
+ 	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
+ 	      | -sym* | -kopensolaris* | -plan9* \
+diff -bur --strip newlib/newlib/configure.host nc/newlib/configure.host
+--- newlib/configure.host	2017-12-19 23:28:06.000000000 +0530
++++ newlib/configure.host	2023-04-11 19:36:09.810151000 +0530
+@@ -387,6 +387,9 @@
+ 	stdio64_dir=stdio64
+ 	xdr_dir=xdr
+ 	;;
++  i[3-7]86-*-sectoros*)
++    sys_dir=sectoros
++    ;;
+   *-*-netware*)
+ 	signal_dir=
+ 	sys_dir=netware
+diff -bur --strip newlib/newlib/libc/sys/configure.in nc/newlib/libc/sys/configure.in
+--- newlib/libc/sys/configure.in	2017-12-19 23:28:06.000000000 +0530
++++ newlib/libc/sys/configure.in	2023-04-11 19:37:59.687456000 +0530
+@@ -25,6 +25,7 @@
+ 	a29khif) AC_CONFIG_SUBDIRS(a29khif) ;;
+ 	arm) AC_CONFIG_SUBDIRS(arm) ;;
+ 	d10v) AC_CONFIG_SUBDIRS(d10v) ;;
++	sectoros) AC_CONFIG_SUBDIRS(sectoros) ;;
+ 	decstation) AC_CONFIG_SUBDIRS(decstation) ;;
+ 	epiphany) AC_CONFIG_SUBDIRS(epiphany) ;;
+ 	h8300hms) AC_CONFIG_SUBDIRS(h8300hms) ;;
