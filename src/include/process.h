@@ -10,11 +10,11 @@
 #include "list.h"
 #include "tree.h"
 #include "math.h"
+#include "elf_loader.h"
 #include "isr.h"
 #include "pic.h"
 #include "keyboard.h"
 #include "filedescriptor.h"
-#include "commanddev.h"
 
 #define TASK_RUNNING            0
 #define TASK_INTERRUPTIBLE      1
@@ -79,11 +79,16 @@ typedef struct process_control_block
 
     uint32_t page_dir_addr;
 
-    uint64_t ticks_on_start;
+    uint32_t ticks_since_boot;
 
-    cdev_response_t* pending_response;
+    int execve_return;
 
     process_kbhandler_t handler;
+
+    // Only function symbols
+    symbol_t* symtab;
+    uint32_t n_syms;
+    int isSYMTAB;
 }pcb_t;
 
 extern list_t* process_list;
@@ -103,6 +108,8 @@ void create_process(char* filename);
 
 // ENV does not work
 void execve(char* name, char** argv, char** env);
+
+uint32_t process_get_ticks();
 
 pargs_t* get_args();
 

@@ -33,8 +33,8 @@ typedef struct canvas_struct
 #define GET_BLUE(val) val & 0x000000FF
 #define SET_ALPHA(color, alpha) ( ((color << 8) >> 8) | ((alpha << 24) & 0xff000000))
 
-#define rgb(r, g, b) (0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b)
-#define argb(a, r, g, b) (0xff000000 & (a << 16)) | (0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b)
+#define rgb(r, g, b) ((0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b))
+#define argb(a, r, g, b) (0xff000000 & (a << 32)) | (0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b)
 
 #define VESA_COLOR_BLACK rgb(0,0,0)
 #define VESA_COLOR_WHITE rgb(255, 255, 255)
@@ -42,6 +42,25 @@ typedef struct canvas_struct
 #define VESA_COLOR_GREEN rgb(0, 255, 0)
 #define VESA_COLOR_BLUE  rgb(0, 0, 255)
 #define VESA_COLOR_MAGENTA  rgb(255, 0, 255)
+
+#define BIOS_COLOR0 rgb(0, 0, 0)
+#define BIOS_COLOR1 rgb(0, 0, 170)
+#define BIOS_COLOR2 rgb(0, 170, 0)
+#define BIOS_COLOR3 rgb(0, 170, 170)
+#define BIOS_COLOR4 rgb(170, 0, 0)
+#define BIOS_COLOR5 rgb(170, 0, 170)
+#define BIOS_COLOR6 rgb(170, 85, 0)
+#define BIOS_COLOR7 rgb(170, 170, 170)
+#define BIOS_COLOR8 rgb(85, 85, 85)
+#define BIOS_COLOR9 rgb(85, 85, 255)
+#define BIOS_COLOR10 rgb(85, 255, 85)
+#define BIOS_COLOR11 rgb(85, 255, 255)
+#define BIOS_COLOR12 rgb(255, 85, 85)
+#define BIOS_COLOR13 rgb(223, 193, 223)
+#define BIOS_COLOR14 rgb(255, 255, 85)
+#define BIOS_COLOR15 rgb(226, 226, 226)
+
+#define BIOS_COLOR(x) BIOS_COLOR##x
 
 extern uint32_t* screen;
 extern int screen_width;
@@ -65,6 +84,8 @@ void draw_rect_clip_pixels2(canvas_t * canvas, rect_region_t * rect_region, int 
 
 void draw_line(canvas_t * canvas, int x1, int y1, int x2, int y2);
 int is_line_overlap(int line1_x1, int line1_x2, int line2_x1, int line2_x2);
+
+uint32_t bioscolor_to_vesa(uint32_t bios);
 
 int is_rect_overlap(rect_t rect1, rect_t rect2);
 rect_t find_rect_overlap(rect_t rect1, rect_t rect2);

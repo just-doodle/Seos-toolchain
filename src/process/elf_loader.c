@@ -67,6 +67,73 @@ int valid_elf(elf_header_t * elf_head)
         xxd(elf_head, sizeof(elf_header_t));
         return 0;
     }
+    return -1;
+}
+
+int load_symbol_table(uint8_t* buf, uint32_t sz, pcb_t* p)
+{
+    elf_header_t* h = ((elf_header_t*)buf);
+    elf_section_header_t* sh = ((elf_section_header_t*)((uint8_t*)buf + h->e_shoff));
+
+    if(valid_elf(h) != 1)
+    {
+        serialprintf("[ELF] Not an valid elf\n");
+        return -1;
+    }
+
+    uint32_t shnum = h->e_shnum;
+
+    serialprintf("[ELF] SHNUM: %d, E_SHOFF: 0x%06x\n", shnum, h->e_shoff);
+
+    elf_sym_t* symtab = NULL;
+    uint32_t sym_num = 0;
+
+    char* sh_strtab = ((char*)(buf + sh[h->e_shstrndx].sh_offset));
+    char* sym_strtab = NULL;
+
+    for(int i = 0; i < shnum; i++)
+    {
+        if(sh[i].sh_type == SHT_SYMTAB)
+        {
+            symtab = ((elf_sym_t*)((uint8_t*)buf + sh[i].sh_offset));
+            sym_num = sh[i].sh_size / sh[i].sh_entsize;
+            sym_strtab = ((elf_sym_t*)((uint8_t*)buf + sh[sh[i].sh_link].sh_offset));
+            serialprintf("[ELF] Got symtab\n");
+        }
+    }
+
+    if(symtab == NULL)
+    {
+        serialprintf("[ELF] No SYMTAB\n");
+        p->isSYMTAB = 0;
+        return -1;
+    }
+
+    for(int i = 0; i < sym_num; i++)
+    {
+        if(symtab[i].st_info & STT_FUNC)
+            p->n_syms++;
+    }
+
+    p->symtab = zalloc(sizeof(symbol_t)*p->n_syms);
+    p->isSYMTAB = 1;
+
+    int j = 0;
+
+    for(int i = 0; i < sym_num; i++)
+    {
+        if(symtab[i].st_info & STT_FUNC)
+        {
+            p->symtab[j].name = strdup(&sym_strtab[symtab[i].st_name]);
+            p->symtab[j].addr = symtab[i].st_value;
+            p->symtab[j].size = symtab[i].st_size;
+            j++;
+        }
+    }
+
+    free(buf);
+
+    return 0;
 }
 
 void load_elf()
@@ -84,7 +151,7 @@ void load_elf()
         exit(10);
     }
     uint32_t size = vfs_getFileSize(f);
-    void * file = kmalloc(size);
+    void * file = zalloc(size);
     vfs_read(f, 0, size, file);
     elf_header_t * head = file;
     elf_program_header_t * prgm_head = (void*)head + head->e_phoff;
@@ -96,7 +163,7 @@ void load_elf()
         exit(10);
     }
 
-    for(uint32_t i = 0; i < head->e_phnum; i++)
+    for(register uint32_t i = 0; i < head->e_phnum; i++)
     {
         if(prgm_head->p_type == PT_LOAD)
         {
@@ -126,8 +193,5 @@ void load_elf()
     fd_open("/dev/stdin", 0, 0);
     fd_open("/dev/stdout", 0, 0);
     fd_open("/dev/stderr", 0, 0);
-    current_process->regs.eflags = 0x206;
-    asm("sti");
-    pic_eoi(0x28);
     SYSCALL_CHANGE_PROCESS(current_process->pid)
 }

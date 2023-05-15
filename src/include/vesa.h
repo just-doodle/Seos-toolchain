@@ -2,7 +2,6 @@
 #define __VESA_H__
 
 #include "system.h"
-#include "bios32.h"
 #include "string.h"
 #include "serial.h"
 
@@ -64,7 +63,7 @@ typedef struct VBE_MODE_INFO
 
 typedef union uint24
 {
-        struct {
+    struct {
         uint8_t r;
         uint8_t g;
         uint8_t b;

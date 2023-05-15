@@ -27,9 +27,16 @@ typedef struct
     uint32_t year;
 } rtc_time_t;
 
+struct timeval
+{
+   long tv_sec;
+   long tv_usec;
+};
+
 void rtc_read(uint8_t* second, uint8_t *minute, uint8_t *hour, uint8_t *day, uint8_t *month, uint32_t *year);
 void rtc_read_time(rtc_time_t *time);
 
 void rtc_char(char* buffer, int format);
+int gettimeofday(struct timeval * tp, void *tzp);
 
 #endif /*__RTC_H__*/

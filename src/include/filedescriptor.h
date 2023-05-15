@@ -28,6 +28,12 @@ typedef struct file_descriptor_struct
     uint32_t size;
 }fd_t;
 
+
+typedef struct dirent {
+	uint32_t d_ino;
+	char d_name[256];
+} fd_dirent;
+
 #define FD_MAX 512
 #define FD_SIZE sizeof(fd_t)
 
@@ -37,6 +43,7 @@ int fd_read(int file, char* ptr, int len);
 int fd_write(int file, char* ptr, int len);
 int fd_lseek(int file, int ptr, int dir);
 int fstat(int file, seos_stat_t* st);
+int fd_readdir(int fd, int index, fd_dirent* dirent);
 
 void list_descriptors();
 

@@ -75,11 +75,14 @@ int kill(pid_t pid, uint32_t sig)
     if(pid == current_process->pid)
     {
         exit(sig);
+        return;
     }
 
     pcb_t* p = get_process_by_pid(pid);
     printf("[PMGR] Process %d killed with code %d.\n", pid, sig);
     serialprintf("[PMGR] Process %d killed with code %d.\n", pid, sig);
+
+    window_close_by_pid(pid);
 
     p->state = TASK_STOPPED;
 
@@ -133,6 +136,8 @@ void exit(uint32_t ret)
 
     current_process->state = TASK_STOPPED;
 
+    window_close_by_pid(pid);
+
     for (size_t i = 0; i < current_process->args.argc; i++)
     {
         free(current_process->args.argv[i]);
@@ -153,7 +158,7 @@ void exit(uint32_t ret)
 
     last_process = NULL;
 
-    change_process((pid == 0 ? 0 : (pid--)));
+    change_process((pid == 0 ? 0 : (pid-1)));
 }
 
 void create_process_from_routine(char *name, void *entrypoint, uint32_t type)
@@ -194,59 +199,78 @@ void create_process_from_routine(char *name, void *entrypoint, uint32_t type)
 
 void execve(char* file, char** argv, char** env)
 {
-    pcb_t * p1 = ZALLOC_TYPES(pcb_t);
-    p1->pid = alloc_pid();
-    p1->regs.eip = (uint32_t)load_elf;
-    p1->regs.eflags = 0x206;
-    p1->self = list_insert_front(process_list, p1);
-    strcpy(p1->filename, file);
-
-    p1->type = TASK_TYPE_KERNEL;
-
-    p1->stack = (void*)0xC0000000;
-    p1->regs.esp = (0xC0000000 - 4 * 1024);
-
-    p1->page_dir = kmalloc_a(sizeof(page_directory_t));
-    memset(p1->page_dir, 0, sizeof(page_directory_t));
-    p1->page_dir_addr = (uint32_t)p1->page_dir;
-    copy_page_dir(p1->page_dir, kernel_page_dir);
-    p1->regs.cr3 = (uint32_t)virt2phys(kernel_page_dir, p1->page_dir);
-
-    for(int j = 0; argv[j] != NULL; j++)
+    if(current_process->execve_return == 0)
     {
+        FILE* j = file_open(file, 0);
+        if(j == NULL)
+            return;
+        pcb_t * p1 = ZALLOC_TYPES(pcb_t);
+        p1->pid = alloc_pid();
+        p1->regs.eip = (uint32_t)load_elf;
+        p1->regs.eflags = 0x206;
+        p1->self = list_insert_front(process_list, p1);
+        strcpy(p1->filename, file);
+
+        p1->type = TASK_TYPE_KERNEL;
+
+        p1->stack = (void*)0xC0000000;
+        p1->regs.esp = (0xC0000000 - 4 * 1024);
+
+        p1->page_dir = kmalloc_a(sizeof(page_directory_t));
+        memset(p1->page_dir, 0, sizeof(page_directory_t));
+        p1->page_dir_addr = (uint32_t)p1->page_dir;
+        copy_page_dir(p1->page_dir, kernel_page_dir);
+        p1->regs.cr3 = (uint32_t)virt2phys(kernel_page_dir, p1->page_dir);
+
+        for(int j = 0; argv[j] != NULL; j++)
+        {
+            p1->args.argc++;
+        }
         p1->args.argc++;
-    }
-    p1->args.argc++;
-    p1->args.argv = zalloc(sizeof(uint32_t) * (p1->args.argc + 1));
+        p1->args.argv = zalloc(sizeof(uint32_t) * (p1->args.argc + 1));
 
-    int i;
-    for(i = 0; i < p1->args.argc; i++)
+        int i;
+        for(i = 0; i < p1->args.argc; i++)
+        {
+            if(argv[i] == NULL)
+                break;
+            p1->args.argv[i+1] = strdup(argv[i]); 
+        }
+        p1->args.argv[i+1] = NULL;
+        p1->args.argv[0] = strdup(p1->filename);
+        p1->args.argv[i+2] = NULL;
+
+        p1->state = TASK_CREATED;
+
+        use_handler(0);
+
+        current_process->execve_return = 1;
+
+#if __ENABLE_DEBUG_SYMBOL_LOADING__
+        FILE* fl = file_open(file, 0);
+        uint32_t sz = vfs_getFileSize(fl);
+        uint8_t* f = zalloc(sz);
+        vfs_read(fl, 0, sz, f);
+        load_symbol_table(f, sz, p1);
+        vfs_close(fl);
+#endif
+
+        change_process(p1->pid);
+    }
+    else
     {
-        if(argv[i] == NULL)
-            break;
-        p1->args.argv[i+1] = strdup(argv[i]); 
+        current_process->execve_return = 0;
+        return;
     }
-    p1->args.argv[i+1] = NULL;
-    p1->args.argv[0] = strdup(p1->filename);
-    p1->args.argv[i+2] = NULL; 
-
-    p1->state = TASK_CREATED;
-
-    use_handler(0);
-
-    change_process(p1->pid);
 }
 
 pargs_t a;
 
 pargs_t* get_args()
 {
-    serialprintf("ARGS: ");
-    for(int i= 0; i < current_process->args.argc; i++)
-        serialprintf("\"%s\":%d\n", current_process->args.argv[i], strlen(current_process->args.argv[i]));
     memset(&a, 0, sizeof(pargs_t));
     a = current_process->args;
-    return(&a);
+    return &a;
 }
 
 void create_process(char* file)
@@ -282,7 +306,7 @@ void init_processManager()
 {
     process_list = list_create();
     init_keyboard();
-    change_keyboard_handler(process_kbh);
+    //change_keyboard_handler(process_kbh);
     printf("[ PMGR ] Process manager initialized...\n");
 }
 
@@ -292,7 +316,7 @@ void list_process()
     foreach (t, process_list)
     {
         pcb_t *p = t->val;
-        printf("%s%d : Name: %s, Type: %s, State: %s\n", (current_process->pid == p->pid ? ">" : " "), p->pid, p->filename, (p->type == TASK_TYPE_KERNEL ? "Kernel task" : "Userspace task"), (p->state == TASK_CREATED ? "Created" : (p->state == TASK_RUNNING ? "Running" : (p->state == TASK_LOADING ? "Loading" : "Unknown"))));
+        printf("%s%d : Name: %s, Type: %s, State: %s, EIP: 0x%06x\n", (current_process->pid == p->pid ? ">" : " "), p->pid, p->filename, (p->type == TASK_TYPE_KERNEL ? "Kernel task" : "Userspace task"), (p->state == TASK_CREATED ? "Created" : (p->state == TASK_RUNNING ? "Running" : (p->state == TASK_LOADING ? "Loading" : "Unknown"))), p->regs.eip);
     }
 }
 
@@ -367,6 +391,41 @@ void process_kbh(uint8_t scancode)
                 isPause = false;
             }
             break;
+        case 0x40:
+            if(isPause)
+            {
+                vidtext_debug_dump();
+                isPause = false;
+            }
+            break;
+        case 0x41:
+            if(isPause)
+            {
+                printtime();
+                isPause = false;
+            }
+            break;
+        case 0x42:
+            if(isPause)
+            {
+                toggle_ifb();
+                isPause = false;
+            }
+            break;
+        case 0x43:
+            if(isPause)
+            {
+                tmpfs_debug_list();
+                isPause = false;
+            }
+            break;
+        case 0x44:
+            if(isPause)
+            {
+                minimize_focused();
+                isPause = false;
+            }
+            break;
         };
     }
 
@@ -380,4 +439,9 @@ void process_kbh(uint8_t scancode)
     }
 
     handler(key, isCTRL, isALT, scancode);
+}
+
+uint32_t process_get_ticks()
+{
+    return current_process->ticks_since_boot;
 }

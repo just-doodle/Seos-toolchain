@@ -150,3 +150,46 @@
 * Updated README.md
 * Fixed some warnings the compiler outputted
 * Incremented kernel version
+
+15-05-2023: 09:58 PM IST v6.23.05.1NR
+* Major update
+* Ported newlib to SectorOS-RW4
+* Implemented a new compositor named SEGUI
+* Implemented driver for vesa
+* Added functions for maximizing minimizing and closing windows in SEGUI
+* Implemented intermediate framebuffer
+* Implemented a text mode for video mode
+* Implemented a drawing library
+* Implemented functions to parse and draw bitmap image
+* Implemented functions to parse and draw targa image
+* Implemented functions to parse and draw fonts
+* Added function to display wallpaper
+* Sped up most of the functions in the OS
+* Removed commanddev support
+* Implemented functions to enable sse
+* Implemented function to rapidly copy data
+* Fixed some bugs in stdio
+* Added new syscalls
+* Fixed some bugs in interrupt handler
+* Added a new wallpaper
+* Implemented spinlocks
+* Implemented a function to parse symbols from elf files for debugging purposes
+* Implemented an abstraction for timer
+* Implemented driver for rtc
+* Implemented tmpfs
+* Implemented gettimeofday
+* Implemented readdir
+* Created a new script which builds the toolchain needed for build SectorOS and the programs
+* Implemented minimal stdio
+* Implemented file descriptors
+* Implemented a new buffer type charbuffer
+* Implemented file stat
+* Added new debug functions to process keyboard handler
+* Fixed a bug in ata driver
+* Incremented minor version number
+* Updated Makefile
+* Updated kernel.c
+* Updated pit.c
+* Updated README.md
+* Updated files for patch of newlib
+* Added screenshots of OS to docs/assets folder

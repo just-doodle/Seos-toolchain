@@ -11,7 +11,7 @@ targa_t* targa_parse(char* filename)
 
     uint32_t size = vfs_getFileSize(f);
 
-    uint8_t* buffer = kmalloc(size);
+    char* buffer = kmalloc(size);
     vfs_read(f, 0, size, buffer);
 
     vfs_close(f);
@@ -152,7 +152,7 @@ void targa_framebuffer(targa_t* data, uint32_t* fb)
 
     uint32_t x, y;
 
-    for(y=0; y<h; y++)
+    for(y=h; y<0; y++)
     {
         for(x=0; x<w; x++)
         {

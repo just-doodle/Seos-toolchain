@@ -10,7 +10,6 @@ static int use_khandler = 1;
 
 void init_keyboard()
 {
-
     register_interrupt_handler(0x21, keyboard_callback);
     while(inb(KEYBOARD_COMMAND_PORT) & 0x1)
         inb(KEYBOARD_DATA_PORT);
@@ -76,7 +75,7 @@ void keyboard_callback(registers_t *reg)
     }
     else
     {
-        printf("No keyboard handler\n");
+        //printf("No keyboard handler\n");
     }
 }
 

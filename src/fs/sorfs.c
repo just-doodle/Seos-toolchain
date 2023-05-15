@@ -202,6 +202,7 @@ int init_sorfs(char* dev_path, char* mountpath)
     fs->sorfs_root->device = fs;
     fs->sorfs_root->listdir = sorfs_listdir;
     fs->sorfs_root->finddir = sorfs_finddir;
+    fs->sorfs_root->readdir = sorfs_readdir;
     fs->sorfs_root->open = sorfs_open;
     fs->sorfs_root->close = sorfs_close;
     fs->sorfs_root->size = fs->sb->total_blocks * fs->sb->block_size;
@@ -210,9 +211,29 @@ int init_sorfs(char* dev_path, char* mountpath)
 
     vfs_mount(mountpath, fs->sorfs_root);
 
-    debug_sorfs(fs);
-
     printf("[SORFS] Mounted %s at %s\n", dev_path, mountpath);
 
     return 0;
+}
+
+DirectoryEntry* sorfs_readdir(FILE* node, uint32_t index)
+{
+    sorfs_t* fs = node->device;
+    if(node == fs->sorfs_root)
+    {
+        sorfs_block_t* b = ZALLOC_TYPES(sorfs_block_t);
+        sorfs_readBlock(fs, index, b);
+        if(b->magic == SORFS_BLOCK_MAGIC)
+        {
+            DirectoryEntry* d = ZALLOC_TYPES(DirectoryEntry);
+            d->inode_count = index;
+            memcpy(d->name, b->name, 64);
+            return d;
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+    return NULL;
 }

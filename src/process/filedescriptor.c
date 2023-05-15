@@ -36,10 +36,20 @@ int fd_open(char* file, int flags, int mode)
     {
         return -1;
     }
+    if(virt2phys(kernel_page_dir, file) == NULL)
+    {
+        if(virt2phys(current_process->page_dir, file) == NULL)
+            return;
+    }
+    if(strlen(file) == 0)
+    {
+        return -1;
+    }
     FILE* f = file_open(file, mode);
+    serialprintf("[FDM] Trying to open %s\n", file);
     if(f == NULL)
     {
-        serialprintf("[FDM] No file %s.\n", file);    
+        serialprintf("[FDM] No file %s\n", file);
         return -1;
     }
 
@@ -63,6 +73,8 @@ int fd_open(char* file, int flags, int mode)
 int fd_close(int file)
 {
     fd_t* f = get_fd(file);
+    if(f == NULL)
+        return -1;
     serialprintf("[FDM] Closing fd:#%d\n", f->index);
     vfs_close(f->file);
     free(f->path);
@@ -74,6 +86,8 @@ int fd_close(int file)
 int fd_read(int file, char* ptr, int len)
 {
     fd_t* f = get_fd(file);
+    if(f == NULL)
+        return -1;
     memset(ptr, 0, len);
     if(f->seek > f->size)
     {
@@ -89,6 +103,8 @@ int fd_read(int file, char* ptr, int len)
 int fd_write(int file, char* ptr, int len)
 {
     fd_t* f = get_fd(file);
+    if(f == NULL)
+        return -1;
     if(f == NULL)
     {
         serialprintf("[FDM] FD#%d is not in FDTABLE.\n", file);
@@ -107,6 +123,8 @@ int fd_write(int file, char* ptr, int len)
 int fd_lseek(int file, int off, int dir)
 {
     fd_t* f = get_fd(file);
+    if(f == NULL)
+        return -1;
     switch(dir)
     {
     case SEEK_SET:
@@ -125,8 +143,25 @@ int fd_lseek(int file, int off, int dir)
 int fstat(int file, seos_stat_t* st)
 {
     fd_t* f = get_fd(file);
+    if(f == NULL)
+        return -1;
     int ret = stat(f->path, st);
     return ret;
+}
+
+int fd_readdir(int fd, int index, fd_dirent* dirent)
+{
+    fd_t* f = get_fd(fd);
+    if(f == NULL)
+        return -1;
+    serialprintf("[FDM] READDIR\n");
+    DirectoryEntry *dir = vfs_readdir(f->file, index);
+    if(dir == NULL)
+        return -1;
+
+    memcpy(dirent, dir, sizeof(fd_dirent));
+    free(dir);
+    return 0;
 }
 
 void list_descriptors()

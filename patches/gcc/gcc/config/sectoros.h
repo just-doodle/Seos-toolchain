@@ -23,7 +23,7 @@
 #undef TARGET_OS_CPP_BUILTINS
 #define TARGET_OS_CPP_BUILTINS()      \
   do {                                \
-    builtin_define ("__myos__");      \
+    builtin_define ("__sectoros__");      \
     builtin_define ("__unix__");      \
     builtin_assert ("system=sectoros");   \
     builtin_assert ("system=unix");   \

@@ -127,6 +127,8 @@ void vfs_mkdir(char *name, uint16_t permissions);
 void vfs_mkfile(char *name, uint16_t permissions);
 int vfs_create(char *name, uint16_t permissions);
 
+DirectoryEntry* vfs_readdir(FILE* f, uint32_t index);
+
 vfs_node *file_open(char *name, uint32_t flags);
 char *expand_path(char *path);
 

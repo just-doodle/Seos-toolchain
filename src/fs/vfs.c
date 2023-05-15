@@ -28,11 +28,14 @@ void vfs_db_listdir(char *name)
     while (*files)
     {
         printf("%s ", *files);
+        serialprintf("%s ", *files);
         kfree(*files);
         files++;
     }
+    serialprintf("JKLKVD\n");
     kfree(save);
     printf("\n");
+    serialprintf("\n");
 }
 
 char** vfs_listdir(char* path)
@@ -85,14 +88,13 @@ void print_vfs_tree()
 
 uint32_t vfs_read(vfs_node *node, uint32_t offset, uint32_t size, char *buffer)
 {
-    if (node && node->read)
+    if (node && node->read && buffer != NULL)
     {
         uint32_t ret = node->read(node, offset, size, buffer);
         return ret;
     }
     return -1;
 }
-
 
 uint32_t find_fs(char* device)
 {
@@ -336,7 +338,13 @@ vfs_node *file_open(char *file_name, uint32_t flags)
     {
         nextnode = vfs_finddir(startpoint, curr_token);
         if (!nextnode)
-            return NULL;
+        {
+            if(flags & OPEN_CREAT)
+            {
+                vfs_create(save, 777);
+                return file_open(save, flags);
+            }
+        }
         startpoint = nextnode;
         if(strcmp(nextnode->name, "/") == 0)
         {

@@ -1,4 +1,6 @@
 #include "string.h"
+#include "kheap.h"
+#include "printf.h"
 
 int useFMEMCPY = 0;
 
@@ -12,18 +14,6 @@ int memcmp(uint8_t *data1, uint8_t *data2, int n)
         data2++;
     }
     return 1;
-}
-
-void* fast_memset(void* d, int s, size_t c)
-{
-    void * temp = d;
-    __asm__ volatile (
-        "rep stosb"
-        :"=D"(d),"=c"(c)
-        :"0"(d),"a"(s),"1"(c)
-        :"memory"
-    );
-    return temp;
 }
 
 int memzero(uint8_t* data, size_t size)
@@ -63,7 +53,7 @@ void *memcpy(void *dst, void const *src, int n)
 
 void *memset(void *dst, char val, int n)
 {
-    char *temp = (char*)dst;
+    register char *temp = (char*)dst;
     for (; n != 0; n--)
         *temp++ = val;
     return dst;
@@ -308,6 +298,8 @@ int isprint(char c)
 
 char *strdup(const char *src)
 {
+    if(src == NULL)
+        return NULL;
     int len = strlen(src) + 1;
     char *dst = (char*)kmalloc(len);
     memcpy(dst, src, len);

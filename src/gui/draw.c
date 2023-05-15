@@ -83,6 +83,84 @@ void draw_rect_pixels(canvas_t * canvas, rect_region_t * rect_region)
     }
 }
 
+uint32_t* brga_to_argb(uint32_t* src, uint32_t* dest, uint32_t width, uint32_t height)
+{
+    for(register int y = 0; y < height; y++)
+    {
+        for(register int x = 0; x < width; x++)
+        {
+            register uint8_t* brga = &(src[width * y + x]);
+            register uint8_t* argb = &(dest[width * y + x]);
+            argb[0] = 0xff;
+            argb[1] = brga[1];
+            argb[2] = brga[2];
+            argb[3] = brga[3];
+
+        }
+    }
+    return dest;
+}
+
+uint32_t bioscolor_to_vesa(uint32_t vesa)
+{
+    uint32_t ret = 0;
+    switch(vesa)
+    {
+    case 0:
+        ret = BIOS_COLOR0;
+        break;
+    case 1:
+        ret = BIOS_COLOR1;
+        break;
+    case 2:
+        ret = BIOS_COLOR2;
+        break;
+    case 3:
+        ret = BIOS_COLOR3;
+        break;
+    case 4:
+        ret = BIOS_COLOR4;
+        break;
+    case 5:
+        ret = BIOS_COLOR5;
+        break;
+    case 6:
+        ret = BIOS_COLOR6;
+        break;
+    case 7:
+        ret = BIOS_COLOR7;
+        break;
+    case 8:
+        ret = BIOS_COLOR8;
+        break;
+    case 9:
+        ret = BIOS_COLOR9;
+        break;
+    case 10:
+        ret = BIOS_COLOR10;
+        break;
+    case 11:
+        ret = BIOS_COLOR11;
+        break;
+    case 12:
+        ret = BIOS_COLOR12;
+        break;
+    case 13:
+        ret = BIOS_COLOR13;
+        break;
+    case 14:
+        ret = BIOS_COLOR14;
+        break;
+    case 15:
+        ret = BIOS_COLOR15;
+        break;
+    default:
+        ret = BIOS_COLOR0;
+        break;
+    };
+    return ret;
+}
+
 void draw_rect_clip_pixels(canvas_t * canvas, rect_region_t * rect_region, int rect_true_width)
 {
     for(int i = rect_region->r.y;  i < rect_region->r.y + rect_region->r.height; i++)

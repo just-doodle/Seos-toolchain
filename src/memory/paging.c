@@ -20,7 +20,8 @@ void* virt2phys(page_directory_t* dir, void* vaddr)
     uint32_t page_dir_idx = PAGEDIR_INDEX(vaddr), page_tbl_idx = PAGETBL_INDEX(vaddr), page_frame_offset = PAGEFRAME_INDEX(vaddr);
     if(!dir->ref_tables[page_dir_idx])
     {
-        printf("virt2phys: Page directory entry not found!\n");
+        //printf("virt2phys: Page directory %d entry not found!\n", page_dir_idx);
+        serialprintf("virt2phys: Page directory %d entry not found!\n", page_dir_idx);
         return NULL;
     }
     page_table_t * table = dir->ref_tables[page_dir_idx];

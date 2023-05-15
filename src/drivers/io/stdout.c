@@ -1,9 +1,14 @@
 #include "stdout.h"
 #include "keyboard.h"
+#include "charbuffer.h"
 
 FILE* stdout_f;
 FILE* stdin_f;
 FILE* stderr_f;
+
+uint32_t stdin_getfsize(FILE* f);
+
+charbuffer_t* cbuf;
 
 void init_stdout()
 {
@@ -21,6 +26,7 @@ void init_stdout()
     stdin_f->read = stdin_read;
     stdin_f->open = stdin_open;
     stdin_f->close = stdin_close;
+    stdin_f->get_filesize = stdin_getfsize;
     strcpy(stdin_f->name, "stdin");
 
     stderr_f = ZALLOC_TYPES(FILE);
@@ -31,6 +37,8 @@ void init_stdout()
     stderr_f->close = stderr_close;
     strcpy(stderr_f->name, "stderr");
 
+    cbuf = create_charbuffer(512);
+
     devfs_add(stdout_f);
     devfs_add(stdin_f);
     devfs_add(stderr_f);
@@ -38,10 +46,11 @@ void init_stdout()
 
 uint32_t stdout_write(FILE* f, uint32_t off, size_t sz, char* buffer)
 {
-    serialprintf("[%s] %s", f, buffer);
-    if(memcmp(f, stdout_f, sizeof(FILE)) == 0)
+    //serialprintf("[%s] %s", f, buffer);
+    if(memcmp((uint8_t*)f, (uint8_t*)stdout_f, sizeof(FILE)) == 0)
     {
-        printf("%s", buffer);
+        printf("%s", strndup(buffer, sz));
+        memset(buffer, 0, sz);
         return sz;
     }
     return -1;
@@ -64,49 +73,35 @@ void stdout_close(FILE* f)
     return;
 }
 
-
-char stdin_buf[1028];
-size_t stdin_idx = 0;
-
 void stdin_buf_clear()
 {
-    for(int i = 0; i < 1028; i++)
-    {
-        stdin_buf[i] = '\0';
-    }
-    stdin_idx = 0;
+    charbuffer_clean(cbuf);
 }
 
 void stdin_keybuff(uint8_t scancode)
 {
-    if(stdin_idx >= 1028)
-    {
-        stdin_buf_clear();
-    }
-    char c = kcodeTochar(scancode);
-    if(c == '\0')
-        return 0;
-    stdin_buf[stdin_idx++] = c;
-    serialprintf("[STDIN] Got char %c in 0x%06x:0x%06x\n", stdin_buf[stdin_idx-1], stdin_idx-1, stdin_idx);
+    charbuffer_push(cbuf, kcodeTochar(scancode));
+    //serialprintf("[STDIN] Got char %c in 0x%06x:0x%06x\n", stdin_buf[stdin_idx-1], stdin_idx-1, stdin_idx);
 }
 
 uint32_t stdin_read(FILE* f, uint32_t off, uint32_t sz, char* buf)
 {
-    if(f == stdin_f)
-    {
-        serialprintf("[STDIN] Waiting for char in off: 0x%06x+0x%06x\n", off, sz);
-        stdin_buf_clear();
-        asm("sti");
-        while(/*stdin_buf[off+sz] == '\0' &&*/ stdin_buf[stdin_idx-1] != '\n');
-        memcpy(buf, stdin_buf+off, sz);
-        //stdin_buf_clear();
-        return sz;
-    }
-    return -1;
+    serialprintf("[STDIN] Waiting for char in off: 0x%06x+0x%06x\n", off, sz);
+    asm("sti");
+    charbuffer_waitchar(cbuf, '\n');
+    charbuffer_dump(cbuf, buf);
+    serialprintf("%s'C'\n", buf);
+    return sz;
+}
+
+uint32_t stdin_getfsize(FILE* f)
+{
+    return cbuf->size;
 }
 
 void stdin_open(FILE* f, uint32_t flags)
 {
+    stdin_buf_clear();
     return;
 }
 
@@ -121,6 +116,7 @@ uint32_t stderr_write(FILE* f, uint32_t off, size_t sz, char* buffer)
     if(f == stderr_f)
     {
         printf("%s", buffer);
+        memset(buffer, 0, sz);
         return sz;
     }
     return -1;

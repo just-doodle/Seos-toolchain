@@ -4,6 +4,8 @@
 #include "filedescriptor.h"
 #include "vesa.h"
 #include "compositor.h"
+#include "rtc.h"
+#include "timer.h"
 
 void * syscall_table[MAX_SYSCALLS] = {
     text_putc, //0
@@ -24,31 +26,24 @@ void * syscall_table[MAX_SYSCALLS] = {
     realloc, //15
     ksbrk, //16
     rand, //17
-    sleep, //18
+    process_get_ticks, //18
     execve, //19
     change_process, //20
     text_clear, //21
     get_args, //22
-    create_window, //23
+    create_window_from_info, //23
     window_display, //24
-    pit_register, //25
+    register_wakeup_callback, //25
     sleep, //26
     window_change_title, //27
+    fd_readdir, //28
+    gettimeofday, //29
+    window_swapBuffer, //30
 };
 
 void syscall_create_process(char* name, void* entrypoint)
 {
     create_process_from_routine(name, entrypoint, TASK_TYPE_USER);
-}
-
-void syscall_vfs_read(vfs_node* file, syscall_rwo_t* options)
-{
-    vfs_read(file, options->offset, options->size, options->buffer);
-}
-
-void syscall_vfs_write(vfs_node* file, syscall_rwo_t* options)
-{
-    vfs_read(file, options->offset, options->size, options->buffer);
 }
 
 void syscall_handler(registers_t *reg)

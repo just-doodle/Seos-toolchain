@@ -1,6 +1,7 @@
 #include "vidtext.h"
 #include "compositor.h"
 #include "targa.h"
+#include "timer.h"
 
 void vidtext_refresh();
 
@@ -9,11 +10,17 @@ int vidtext_isInit = 0;
 
 window_t* c_window = NULL;
 
+rect_region_t vid_rect;
+canvas_t vid_can;
+
+uint32_t bg;
+uint32_t fg;
+
 void init_vidtext(uint32_t background_color)
 {
     c_window = create_window("shell", 8*80, 8*25, 40, 40);
 
-    vidtext = kcalloc(sizeof(vidtext_t), 1);
+    vidtext = ZALLOC_TYPES(vidtext_t);
 
     vidtext->width = c_window->width;
     vidtext->height = c_window->height;
@@ -26,18 +33,26 @@ void init_vidtext(uint32_t background_color)
     vidtext->buffer = zalloc(vidtext->length);
     vidtext->canvas = canvas_create(vidtext->width, vidtext->height, c_window->region.region);
 
-    vidtext->background_color = background_color;
-    vidtext->font_color = VESA_COLOR_BLACK + 1;
+    vidtext->background_color = bg;
+    vidtext->font_color = fg;
 
-    //pit_register(vidtext_refresh, 30.0/pit_frequency);
+    vid_rect.r = rect_create(0, 0, c_window->width, c_window->height);
+    vid_rect.region = zalloc(c_window->fb_size);
+
+    vid_can = canvas_create(c_window->width, c_window->height, vid_rect.region);
 
     vidtext_isInit = true;
+
+    register_wakeup_callback(vidtext_refresh, 60.0/get_frequency());
 }
 
 void vidtext_putchar(char c)
 {
-    if(vidtext_isInit == 1)
+    if(vidtext_isInit == true)
     {
+        if(c == 0)
+            return;
+
         if(vidtext->pos_col == vidtext->col)
         {
             vidtext->buffer[vidtext->pos++] = '\n';
@@ -82,36 +97,45 @@ void vidtext_debug_dump()
 
 void vidtext_set_font_color(uint32_t color)
 {
-    vidtext->font_color = color;
+    if(vidtext != NULL)
+        vidtext->font_color = color;
+    else
+        fg = color;
 }
+
+
 
 void vidtext_set_background_color(uint32_t color)
 {
-    vidtext->background_color = color;
+    if(vidtext != NULL)
+        vidtext->background_color = color;
+    else
+        bg = color;
 }
 
 void vidtext_update()
 {
-    serialprintf("VIDTEXT\n");
-    set_fill_color(vidtext->background_color);
-
-    memset(vidtext->canvas.framebuffer, vidtext->background_color, c_window->fb_size);
+    memsetdw(vid_rect.region, vidtext->background_color, c_window->fb_size/32);
 
     set_font_color(vidtext->font_color);
 
     vidtext->buffer[vidtext->pos] = '_';
 
-    draw_text(&vidtext->canvas, vidtext->buffer, 0, 0);
+    draw_text(&vid_can, vidtext->buffer, 0, 0);
 
     vidtext->buffer[vidtext->pos] = '\0';
+}
 
-    window_draw(c_window);
+void vidtext_draw()
+{
+    draw_rect_pixels(&vidtext->canvas, &vid_rect);
 }
 
 uint32_t z = 0;
 void vidtext_refresh()
 {
     z++;
+    vidtext_draw();
     if(z == 1)
     {
         vidtext_update();
@@ -134,11 +158,14 @@ void vidtext_printf(char* fmt, ...)
 
 void vidtext_clear()
 {
-    memset(vidtext->buffer, 0, vidtext->pos);
-    vidtext->pos = 0;
-    vidtext->pos_row = 0;
-    vidtext->pos_col = 0;
-    vidtext_update();
+    if(vidtext_isInit == true)
+    {
+        memset(vidtext->buffer, 0, vidtext->pos);
+        vidtext->pos = 0;
+        vidtext->pos_row = 0;
+        vidtext->pos_col = 0;
+        vidtext_update();
+    }
 }
 
 void vidtext_set_background_image(char* filename)

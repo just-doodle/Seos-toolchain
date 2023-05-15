@@ -38,6 +38,20 @@
 #define PF_W    0x2
 #define PF_R    0x4
 
+#define STT_NOTYPE	0		/* Symbol type is unspecified */
+#define STT_OBJECT	1		/* Symbol is a data object */
+#define STT_FUNC	2		/* Symbol is a code object */
+#define STT_SECTION	3		/* Symbol associated with a section */
+#define STT_FILE	4		/* Symbol's name is file name */
+#define STT_COMMON	5		/* Symbol is a common data object */
+#define STT_TLS		6		/* Symbol is thread-local data object*/
+#define	STT_NUM		7		/* Number of defined types.  */
+#define STT_LOOS	10		/* Start of OS-specific */
+#define STT_GNU_IFUNC	10		/* Symbol is indirect code object */
+#define STT_HIOS	12		/* End of OS-specific */
+#define STT_LOPROC	13		/* Start of processor-specific */
+#define STT_HIPROC	15		/* End of processor-specific */
+
 typedef uint16_t Elf32_Half;
 typedef uint32_t Elf32_Off;
 typedef uint32_t Elf32_Addr;
@@ -126,6 +140,29 @@ typedef struct elf_program_header
     Elf32_Word      p_flags;
     Elf32_Word      p_align;
 }elf_program_header_t;
+
+typedef struct
+{
+    Elf32_Word    st_name;
+    Elf32_Addr    st_value;
+    Elf32_Word    st_size;
+    unsigned char st_info;
+    unsigned char st_other;
+    Elf32_Half    st_shndx;
+} elf_sym_t;
+
+typedef struct symbol
+{
+  const char *name;
+  uint32_t addr;
+  uint32_t size;
+}symbol_t;
+
+typedef struct symoff
+{
+    char* name;
+    uint32_t offset;
+}symoff_t;
 
 void load_elf();
 

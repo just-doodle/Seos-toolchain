@@ -54,5 +54,6 @@ void sorfs_close(FILE* f);
 
 char** sorfs_listdir(FILE* node);
 FILE* sorfs_finddir(FILE* node, char* name);
+DirectoryEntry* sorfs_readdir(FILE* node, uint32_t index);
 
 #endif /*__SORFS_H__*/

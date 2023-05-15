@@ -219,7 +219,7 @@ void ata_pio_Flush28(ata_pio_t* ap)
 
 char* ata_pio_read_sector(ata_pio_t* ap, uint32_t lba)
 {
-    char* buffer = (char*)kmalloc(ap->bytesPerSector);
+    char* buffer = (char*)zalloc(ap->bytesPerSector);
     ata_pio_Read28(ap, lba, (uint8_t*)buffer, ap->bytesPerSector);
     return buffer;
 }
@@ -269,6 +269,7 @@ uint32_t ata_pio_write(vfs_node* node, uint32_t offset, uint32_t size, char* buf
 
 uint32_t ata_pio_read(vfs_node* node, uint32_t offset, uint32_t size, char* buffer)
 {
+    asm("cli");
     ata_pio_t* ap = (ata_pio_t*)node->device;
     uint32_t start = offset / ap->bytesPerSector;
     uint32_t start_offset = offset % ap->bytesPerSector;
@@ -302,6 +303,7 @@ uint32_t ata_pio_read(vfs_node* node, uint32_t offset, uint32_t size, char* buff
         total = total + read_size;
         counter++;
     }
+    asm("sti");
     return total;
 }
 

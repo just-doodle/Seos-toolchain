@@ -3,7 +3,7 @@
 set -e
 
 SCRIPTDIR="$PWD/src/scripts/"
-SYSROOT="$PWD/sysroot"
+SYSROOT="$HOME/sysroot"
 TESTDIR="$SYSROOT/installed"
 I686_ELF_TOOLCHAIN_ZIP="$SYSROOT/src/build-i686-elf/i686-elf-tools-linux.zip"
 PATCHDIR="$PWD/patches"

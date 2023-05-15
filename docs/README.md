@@ -14,9 +14,19 @@ Kernel Version
 
 
 ## 🧱 Kernel
-The current kernel version for SectorOS-RW4 is v5.23.04.4NR.<br>
+The current kernel version for SectorOS-RW4 is v6.23.05.1NR.<br>
+
+## Screenshots
+<img src="./assets/Screenshot_01.png"></img>
+<img src="./assets/Screenshot_02.png"></img>
+<img src="./assets/Screenshot_03.png"></img>
 
 ## ⚙️ Build Steps
+
+**You may want a custom toolchain to build the project and to compile programs for the OS. To Compils the toolchain, follow these steps:**
+
+1. Open the command prompt/terminal in the root directory of the project.
+2. Type ./src/scripts/make_toolchain.sh and press Enter to start the build process
 
 **To build the project, follow these steps:**
 
@@ -27,6 +37,12 @@ The current kernel version for SectorOS-RW4 is v5.23.04.4NR.<br>
  
 1. Open the command prompt/terminal in the root directory of the project.
 2. Type make run and press Enter to run the kernel.
+
+## Software ports
+
+**These programs have been ported to SectorOS-RW4**
+1. nasm
+2. doom
 
 ## 🏆 Contributing
 

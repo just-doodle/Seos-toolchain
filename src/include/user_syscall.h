@@ -1,7 +1,7 @@
 #ifndef __USER_SYSCALL_H__
 #define __USER_SYSCALL_H__
 
-#define MAX_SYSCALLS 28
+#define MAX_SYSCALLS 31
 
 #define SYSCODE_PUTC 0x00
 #define SYSCODE_EXIT 0x01
@@ -21,19 +21,23 @@
 #define SYSCODE_REALLOC 0x0F
 #define SYSCODE_SBRK 0x10
 #define SYSCODE_RAND 0x11
-#define SYSCODE_WAIT 0x12
+#define SYSCODE_GET_TICKS 0x12
 #define SYSCODE_EXECVE 0x13
 #define SYSCODE_CHANGE_PROCESS 0x14
 #define SYSCODE_CLEAR 0x15
 #define SYSCODE_GET_ARGS 0x16
-#define SYSCODE_CHANGE_VIDEO_MODE 0x17
+#define SYSCODE_CREATE_WINDOW 0x17
 #define SYSCODE_COPY_FRAMEBUFFER 0x18
 #define SYSCODE_PIT_REGISTER 0x19
 #define SYSCODE_SLEEP 0x1A
-#define SYSCODE_PUT_PIXEL 0x1B
+#define SYSCODE_WINDOW_CHANGE_TITLE 0x1B
+#define SYSCODE_READDIR 0x1C
+#define SYSCODE_GETTIMEOFDAY 0x1D
+#define SYSCODE_SWAP_BUFFER 0x1E
 
 #define SYSCALL(ret, a, b, c, d) asm volatile("int $0x80": "=a"(ret) : "a"(a), "b"(b), "c"(c), "d"(d));
 #define SYSCALL2(a, b, c, d) asm volatile("int $0x80": : "a"(a), "b"(b), "c"(c), "d"(d));
+#define SYSCALL3(ret, a, b, c, d, si, di) asm volatile("int $0x80": "=a"(ret) : "a"(a), "b"(b), "c"(c), "d"(d), "e"(si), "f"(di));
 
 #define SYSCALL_PUTC(c) SYSCALL2(SYSCODE_PUTC, c, 0, 0)
 #define SYSCALL_EXIT(code)    SYSCALL2(SYSCODE_EXIT, code, 0, 0)
@@ -45,6 +49,7 @@
 #define SYSCALL_LSEEK(fd, off, dir, ret) SYSCALL(ret, SYSCODE_LSEEK, fd, off, dir)
 #define SYSCALL_FSTAT(fd, seos_stat, ret) SYSCALL(ret, SYSCODE_FSTAT, fd, seos_stat, 0)
 #define SYSCALL_STAT(name, seos_stat, ret) SYSCALL(ret, SYSCODE_STAT, name, seos_stat, 0)
+#define SYSCALL_READDIR(fd, idx, dirent, ret) SYSCALL(ret, SYSCODE_READDIR, fd, idx, dirent)
 #define SYSCALL_GETPID(ret) SYSCALL(ret, SYSCODE_GETPID, 0, 0, 0)
 #define SYSCALL_KILL(pid, sig, ret) SYSCALL(ret, SYSCODE_KILL, pid, sig, 0);
 #define SYSCALL_MALLOC(ptr, size) SYSCALL(ptr, SYSCODE_MALLOC, size, 0, 0)
@@ -52,16 +57,18 @@
 #define SYSCALL_REALLOC(ret_ptr, ptr, size) SYSCALL(ret_ptr, SYSCODE_REALLOC, ptr, size, 0)
 #define SYSCALL_SBRK(size, ret) SYSCALL(ret, SYSCODE_SBRK, size, 0, 0)
 #define SYSCALL_RAND(ret) SYSCALL(ret, SYSCODE_RAND, 0, 0, 0)
-#define SYSCALL_WAIT(ms) SYSCALL2(SYSCODE_WAIT, ms, 0, 0)
 #define SYSCALL_EXECVE(name, argv, env) SYSCALL2(SYSCODE_EXECVE, name, argv, env)
 #define SYSCALL_CHANGE_PROCESS(pid) SYSCALL2(SYSCODE_CHANGE_PROCESS, pid, 0, 0)
 #define SYSCALL_CLEAR SYSCALL2(SYSCODE_CLEAR, 0, 0, 0)
 #define SYSCALL_GET_ARGS(ret) SYSCALL(ret, SYSCODE_GET_ARGS, 0, 0, 0)
-#define SYSCALL_CHANGE_VIDEO_MODE(width, height, bpp) SYSCALL2(SYSCODE_CHANGE_VIDEO_MODE, width, height, bpp);
-#define SYSCALL_COPY_FRAMEBUFFER(fb) SYSCALL2(SYSCODE_COPY_FRAMEBUFFER, fb, 0, 0)
+#define SYSCALL_WINDOW_DISPLAY(window, fb) SYSCALL2(SYSCODE_COPY_FRAMEBUFFER, window, fb, 0)
 #define SYSCALL_GET_TICKS(ret) SYSCALL(ret, SYSCODE_GET_TICKS, 0, 0, 0)
 #define SYSCALL_PIT_REGISTER(callback, seconds) SYSCALL2(SYSCODE_PIT_REGISTER, callback, seconds, 0)
-#define SYSCALL_PUT_PIXEL(x, y, pixel) SYSCALL2(SYSCODE_PUT_PIXEL, x, y, pixel)
 #define SYSCALL_SLEEP(ms) SYSCALL2(SYSCODE_SLEEP, ms, 0, 0)
+#define SYSCALL_CREATE_WINDOW(ret, info) SYSCALL(ret, SYSCODE_CREATE_WINDOW, info, 0, 0)
+#define SYSCALL_WINDOW_CHANGE_TITLE(window, title) SYSCALL2(27, window, title, 0)
+#define SYSCALL_GETTIMEOFDAY(tval, tzp) SYSCALL2(SYSCODE_GETTIMEOFDAY, tval, tzp)
+#define SYSCALL_SWAP_BUFFER(win, buffer) SYSCALL2(SYSCODE_SWAP_BUFFER, win, buffer, 0)
+#define SYSCALL_UNLINK(file) SYSCALL2(SYSCODE_UNLINK, file, 0, 0)
 
 #endif /*__USER_SYSCALL_H__*/

@@ -6,7 +6,9 @@
 #include "mount.h"
 #include "ramdisk.h"
 #include "process.h"
+#include "compositor.h"
 #include "stdout.h"
+#include "bitmap.h"
 
 shellcmd_t cmds[256];
 int c_cmds = 0;
@@ -227,12 +229,43 @@ int s_textclear(list_t* args)
     return 0;
 }
 
+int s_showbmp(list_t* args)
+{
+    uint32_t argc = list_size(args);
+    if(argc < 2)
+    {
+        printf("usage: %s [file]\n", list_get_node_by_index(args, 0)->val);
+        return 1;
+    }
+    char* filename = list_pop(args)->val;
+    bitmap_t* b = bitmap_create(filename);
+
+    if(b->width > vesa_getXResolution() || b->height > vesa_getYResolution())
+    {
+        return 1;
+    }
+
+    window_t* w = create_window(filename, b->width, b->height, 32, 32);
+
+    uint32_t* fb = zalloc(w->fb_size);
+
+    if(b->bpp == 24)
+        bitmap_to_framebuffer(b, fb);
+    else
+        bitmap_to_framebuffer2(b, fb);
+
+    window_display(w, fb);
+    free(fb);
+
+    return 0;
+}
+
 int s_elf(list_t* args)
 {
     uint32_t argc = list_size(args);
     if(argc < 2)
     {
-        printf("usage: %s [file]\n");
+        printf("usage: %s [file]\n", list_get_node_by_index(args, 0)->val);
         return 1;
     }
 
@@ -299,7 +332,7 @@ void init_shell()
     getCMD("create_ramdisk", "Creates ramdisk of given file in /dev/ directory", s_ramdisk);
     getCMD("color", "Changes the text color. Only use decimal numbers.", s_chcolor);
     getCMD("loadelf", "Loads the given ELF file.", s_elf);
-    getCMD("return", "Returns to current process. If there is not then the kernel will halt.", s_return);
+    getCMD("showbmp", "Shows the given bitmap image.", s_showbmp);
 }
 
 void clear_buffer()
@@ -323,6 +356,21 @@ void shell_f()
             clear_buffer();
             printf("#/> ");
             return;
+        }
+        else if(strncmp(list_get_node_by_index(args, 0)->val, "/", 1) == 0)
+        {
+            char* file_name = list_get_node_by_index(args, 0)->val;
+            char** argv = zalloc(sizeof(uint32_t)*list_size(args));
+            int j;
+            for(j = 1; j < list_size(args); j++)
+            {
+                listnode_t* l = list_get_node_by_index(args, j);
+                argv[j-1] = zalloc(strlen(l->val));
+                strcpy(argv[j-1], l->val);
+            }
+            argv[j++] = NULL;
+            execve(file_name, argv, NULL);
+            printf("#/> ");
         }
     }
 

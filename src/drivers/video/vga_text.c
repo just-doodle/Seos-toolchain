@@ -1,4 +1,5 @@
 #include "vga_text.h"
+#include "vidtext.h"
 
 static vga_text_t textmode;
 
@@ -13,6 +14,15 @@ void disable_blink()
     outb(0x3C0, a);
 }
 
+void move_cursor()
+{
+    uint16_t pos = (textmode.y * 80 + textmode.x);
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t) (pos & 0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+}
+
 void init_text()
 {
     textmode.height = 25;
@@ -25,15 +35,6 @@ void init_text()
     textmode.bg = VGA_LIGHT_BLUE;
     disable_blink();
     move_cursor();
-}
-
-void move_cursor()
-{
-    uint16_t pos = (textmode.y * 80 + textmode.x);
-    outb(0x3D4, 0x0F);
-    outb(0x3D5, (uint8_t) (pos & 0xFF));
-    outb(0x3D4, 0x0E);
-    outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
 }
 
 void scroll()
@@ -60,6 +61,7 @@ void scroll()
 
 void text_putc(char c)
 {
+#if 0
     uint8_t attr = ((textmode.bg << 4) & 0xF0) | (textmode.fg & 0x0F);
     uint16_t* location;
 
@@ -95,10 +97,14 @@ void text_putc(char c)
 
     scroll();
     move_cursor();
+#else
+    vidtext_putchar(c);
+#endif
 }
 
 void text_clear()
 {
+#if 0
     uint8_t attr = ((textmode.bg << 4) & 0xF0) | (textmode.fg & 0x0F);
     uint16_t space = 0x20 | (attr << 8);
     for(int i = 0*80; i < 25*80; i++)
@@ -108,12 +114,17 @@ void text_clear()
     textmode.x = 0;
     textmode.y = 0;
     move_cursor();
+#else
+    vidtext_clear();
+#endif
 }
 
 void text_chcolor(uint8_t fg, uint8_t bg)
 {
     textmode.bg = bg;
     textmode.fg = fg;
+    vidtext_set_font_color(bioscolor_to_vesa(fg));
+    vidtext_set_background_color(bioscolor_to_vesa(bg));
 }
 
 uint8_t text_getBG()

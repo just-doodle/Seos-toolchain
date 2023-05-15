@@ -22,7 +22,7 @@ AS=$(TOOLDIR)/i686-elf-as
 ASFLAGS=
 
 NASM=nasm
-NASMFLAGS=-f elf32 -O0 -w+zeroing -g
+NASMFLAGS=-f elf32 -g -F dwarf -O0 -w+zeroing
 
 OBJCOPY = i686-elf-objcopy
 OBJDUMP = i686-elf-objdump
@@ -73,18 +73,20 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/common/libs/list.o \
 			$(SRCDIR)/common/libs/tree.o \
 			$(SRCDIR)/common/libs/fast_memcpy.o \
+			$(SRCDIR)/common/libs/charbuffer.o \
 			$(SRCDIR)/fs/vfs.o \
 			$(SRCDIR)/fs/devfs.o \
 			$(SRCDIR)/fs/mount.o \
 			$(SRCDIR)/fs/sorfs.o \
 			$(SRCDIR)/fs/kernelfs.o \
+			$(SRCDIR)/fs/tmpfs.o \
 			$(SRCDIR)/fs/stat.o \
 			$(SRCDIR)/gui/draw.o \
 			$(SRCDIR)/gui/blend.o \
 			$(SRCDIR)/gui/targa.o \
 			$(SRCDIR)/gui/compositor.o \
 			$(SRCDIR)/drivers/video/ifb.o \
-			$(SRCDIR)/drivers/io/commanddev.o \
+			$(SRCDIR)/drivers/hal/timer.o \
 			$(SRCDIR)/gui/bitmap.o \
 			$(SRCDIR)/gui/font/font.o \
 			$(SRCDIR)/gui/font/font_parser.o \
@@ -129,6 +131,7 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 	@echo 'menuentry "$(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'module /boot/sorhd' >> $(PROJECT)/boot/grub/grub.cfg
+	@#echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
 	@$(GRUBDIR)grub-mkrescue -o $(ISOFILE) $(PROJECT) --product-name=$(PROJECT)
@@ -156,7 +159,7 @@ $(IMAGEFILE): sorfs_compile create_test_program
 	./sorfs -c $@ $(wildcard $(FILESDIR)/*)
 
 run: $(ISOFILE)
-	$(QEMU) $(QEMUFLAGS) -enable-kvm -cpu host
+	$(QEMU) $(QEMUFLAGS) -enable-kvm -cpu host | tee k.log
 
 rund: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS)
@@ -181,4 +184,4 @@ clean:
 	@rm -f $(OBJECTS) $(EXECUTABLE) $(ISOFILE) sorfs $(IMAGEFILE)
 
 clean_objs:
-	@rm -f $(OBJECTS)
+	@rm -f $(OBJECTS) $(SRCDIR)

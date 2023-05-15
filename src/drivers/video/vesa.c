@@ -66,7 +66,7 @@ uint32_t rgb(uint8_t r, uint8_t g, uint8_t b)
 
 void vesa_copy_framebuffer(void* fb)
 {
-    memcpy(current_mode_info.phys_base, fb, (current_mode_info.pitch * current_mode_info.YResolution));
+    memcpy((void*)current_mode_info.phys_base, fb, (current_mode_info.pitch * current_mode_info.YResolution));
 }
 
 void vesa_change_mode(uint32_t width, uint32_t height, uint32_t bpp)

@@ -69,11 +69,11 @@ void bitmap_display(char* file)
 void bitmap_to_framebuffer(bitmap_t * bmp, uint32_t * frame_buffer)
 {
     if(!bmp) return;
-    uint8_t * image = bmp->image_bytes;
+    uint8_t * image = ((uint8_t*)bmp->image_bytes);
     int j = 0;
     for(int i = 0; i < bmp->height; i++)
     {
-        char * image_row = image + i * bmp->width * 3;
+        char * image_row = ((char*)image + i * bmp->width * 3);
         uint32_t * framebuffer_row = (void*)frame_buffer + (bmp->height - 1 - i) * bmp->width * 4;
         j = 0;
         for(int k = 0; k < bmp->width; k++) {
@@ -89,11 +89,11 @@ void bitmap_to_framebuffer(bitmap_t * bmp, uint32_t * frame_buffer)
 void bitmap_to_framebuffer2(bitmap_t * bmp, uint32_t * frame_buffer) 
 {
     if(!bmp) return;
-    uint8_t * image = bmp->image_bytes;
+    uint8_t * image = ((uint8_t*)bmp->image_bytes);
     int j = 0;
     for(int i = 0; i < bmp->height; i++)
     {
-        char * image_row = image + i * bmp->width * 4;
+        char * image_row = ((char*)image + i * bmp->width * 4);
         uint32_t * framebuffer_row = (void*)frame_buffer + (bmp->height - 1 - i) * bmp->width * 4;
         j = 0;
         for(int k = 0; k < bmp->width; k++)

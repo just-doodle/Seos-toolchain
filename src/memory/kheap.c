@@ -10,6 +10,9 @@ void* heap_end;
 void* heap_curr;
 void* heap_max;
 
+size_t size_allocated;
+size_t heap_size;
+
 bool Kheap_enabled = false;
 
 // Kernel Page Directory
@@ -125,6 +128,11 @@ void* krealloc(void* ptr, uint32_t size)
     return ret;
 }
 
+void debug_kmalloc_print()
+{
+    printf("Size: %dB\nHeap allocated: %dB\nEnd addr: 0x%06x\nStart addr: 0x%06x\nMax addr: 0x%06x\n", heap_size, size_allocated, heap_start, heap_end, heap_max);
+}
+
 void init_kheap(void* start, void* end, void* max)
 {
     printf("[KHEAP] Initializing memory allocation...\n");
@@ -133,6 +141,7 @@ void init_kheap(void* start, void* end, void* max)
     heap_max = max;
     heap_curr = start;
     Kheap_enabled = true;
+    heap_size = (((uint32_t)end) - ((uint32_t)start));
     serialprintf("[KHEAP] HEAP:\n\t-START: 0x%06x\n\t-END: 0x%06x\n\t-MAX: 0x%06x\n", start, end, max);
     printf("[KHEAP] Kernel Heap Initialized\n");
 }
@@ -276,6 +285,7 @@ void* malloc(uint32_t size)
     if(size == 0)
         return NULL;
     uint32_t roundedSize = ((size + 15)/16) * 16;
+    size_allocated += size;
     uint32_t blockSize = roundedSize + OVERHEAD;
     memory_block_t* best;
     best = bestFit(roundedSize);
@@ -358,6 +368,7 @@ void free(void* ptr)
     memory_block_t* curr = ptr - sizeof(memory_block_t);
     memory_block_t* prev = getPrevBlock(curr);
     memory_block_t* next = getNextBlock(curr);
+    size_allocated -= curr->size;
     //serialprintf("[DYNMALLOC] PREV: 0x%06x%s | CURR: 0x%06x%s | NEXT: 0x%06x%s\n", (uint32_t)prev, (((uint32_t)prev) > ((uint32_t)heap_max) ? "!" : (((uint32_t)prev) < ((uint32_t)heap_start) ? "!!" : "\0")), (uint32_t)curr, (((uint32_t)curr) > ((uint32_t)heap_max) ? "!" : (((uint32_t)curr) < ((uint32_t)heap_start) ? "!!" : "\0")), (uint32_t)next, (((uint32_t)next) > ((uint32_t)heap_max) ? "!" : (((uint32_t)next) < ((uint32_t)heap_start) ? "!!" : "\0")));
     if(isMemoryPaged(kernel_page_dir, prev) == 0)
         prev = NULL;

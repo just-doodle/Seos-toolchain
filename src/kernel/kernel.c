@@ -26,8 +26,10 @@
 #include "stdout.h"
 #include "sse.h"
 #include "vesa.h"
-#include "commanddev.h"
+#include "ifb.h"
 #include "compositor.h"
+#include "timer.h"
+#include "tmpfs.h"
 
 
 #define MOTD_NUM 3
@@ -84,15 +86,16 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     text_chcolor(VGA_WHITE, VGA_LIGHT_BLUE);
     text_clear();
 
+    init_gdt();
+    init_idt();
+
     init_pmm(1024 * info->mem_upper);
     init_paging();
     init_kheap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_MAX_ADDRESS);
 
-    init_gdt();
-    init_idt();
-
     init_pic();
 
+    init_timer_interface();
 	init_pit();
 
     init_syscall();
@@ -111,10 +114,20 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     if(no_process == 0)
         init_processManager();
 
-    enable_interrupts();
     init_keyboard();
 
     init_pci();
+
+    enable_sse();
+    enable_fast_memcpy();
+
+    init_vesa(info);
+
+    init_ifb();
+
+    init_compositor();
+
+    init_vidtext(0xFFFFFFFF);
 
     init_vfs();
     init_devfs();
@@ -127,26 +140,12 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         multiboot_module_t* mods = (multiboot_module_t*)info->mods_addr;
         printf("[MULTIBOOT] mods name: %s\n", mods[0].cmdline);
         alloc_region(kernel_page_dir, mods[0].mod_start, mods[0].mod_end, 1, 1, 1);
-        uint32_t modsize = mods[0].mod_end - mods[0].mod_start;
-        char* modbuf = zalloc(modsize);
-        memcpy(modbuf, mods[0].mod_start, modsize);
         serialprintf("Ramdisk created\n");
-        add_ramdisk(modbuf, modbuf+modsize, 1);
+        add_ramdisk(mods[0].mod_start, mods[0].mod_end, 1);
     }
 
     FILE* stdout = file_open("/dev/stdout", 0);
     vfs_write(stdout, 0, 0, "Hello STDOUT is working\n");
-
-    enable_sse();
-    enable_fast_memcpy();
-
-    init_vesa(info);
-
-    init_ifb();
-
-    init_compositor();
-
-    init_vidtext(rgb(245, 212, 223));
 
     uint32_t esp;
     asm volatile("mov %%esp, %0" : "=r"(esp));
@@ -161,15 +160,6 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     printf("The kernel version is %s\n", KERNEL_VERSION);
 
     init_rand();
-
-    db_print();
-
-    init_commanddev();
-
-    char* test = "Hello User!\n";
-
-    init_kernelfs();
-    kernelfs_add_variable("test", test, strlen(test), KERNELFS_TYPE_STRING);
 
     print_cpu_info();
 
@@ -202,13 +192,20 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         }
     }
 
-    vidtext_clear();
-
-    init_shell();
+    enable_interrupts();
 
     printf("[Kernel] warning: The page directory of the processes will not be freed because of a bug. This will cause memory leak.\n");
 
-    printf("\nSectorOS shell v1.3.3\nRun help to get the list of commands.\n#/> ");
+    printtime();
 
+    init_tmpfs("/tmp/");
+
+    vfs_create("/tmp/hello", 777);
+    vfs_create("/tmp/boot", 777);
+
+    compositor_load_wallpaper("/wallpaper.bmp", 2);
+    init_shell();
+
+    printf("\nSectorOS shell v2.0.0\nRun help to get the list of commands.\n#/> ");    
     while(1);
 }
