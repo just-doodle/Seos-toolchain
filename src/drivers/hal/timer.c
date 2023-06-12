@@ -22,6 +22,8 @@ long timeofday;
 
 int enable_timer_interface = 0;
 
+#include "kernelfs.h"
+
 void init_timer_interface()
 {
     timezone_sec = 19800;
@@ -33,6 +35,7 @@ void init_timer_interface()
     asm("divl %%ebx" : "=a"(internal_counter02) : "a"(current_timer_interface->frequency), "b"(1000), "d"(0));
     timeofday = gettimeofday_internal() + timezone_sec;
     rtc_read(NULL, NULL, NULL, NULL, &month, &year);
+    kernelfs_add_variable("ticksinceboot", &internal_ticks_mseconds, sizeof(long));
 }
 
 void timer_interface_call()
@@ -150,61 +153,56 @@ int gettimeofday(struct timeval * tp, void *tzp)
 
 int isPM = 0;
 
+void getDateTimeFromTimestamp(long timestamp, int* day, int* month, int* year, int* hour, int* minutes)
+{
+    const int secondsPerMinute = 60;
+    const int secondsPerHour = 60 * secondsPerMinute;
+    const int secondsPerDay = 24 * secondsPerHour;
+    int daysPerYear = 365;
+    const int secondsPerYear = daysPerYear * secondsPerDay;
+
+    *year = 1970 + timestamp / secondsPerYear;
+
+    int remainingSeconds = timestamp % secondsPerYear;
+
+    int isLeapYear = (*year % 4 == 0 && *year % 100 != 0) || *year % 400 == 0;
+    if (isLeapYear)
+        daysPerYear++;
+
+    *day = remainingSeconds / secondsPerDay;
+    remainingSeconds %= secondsPerDay;
+
+    *hour = remainingSeconds / secondsPerHour;
+    remainingSeconds %= secondsPerHour;
+
+    *minutes = remainingSeconds / secondsPerMinute;
+
+    int daysInMonth[] = {31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int i;
+    for (i = 0; i <= 12; i++) {
+        if (*day < daysInMonth[i])
+            break;
+        *day -= daysInMonth[i];
+    }
+
+    *month = i + 1;
+}
+
 void timetochar(char* str, int format)
 {
-        uint32_t time_s = timeofday;
-    uint32_t n = time_s;
+    int day = 0;
+    int month = 0;
+    int year = 0;
+    int hours = 0;
+    int minutes = 0;
 
-    uint32_t days = (n) / (24 * 3600);
-    n = n % (24 * 3600);
-
-    uint32_t hours = (n) / 3600;
-    n = n % 3600;
-
-    uint32_t minutes = (n) / 60;
-    n = n % 60;
-
-    uint32_t seconds = n;
-
-    uint32_t dm = 0;
-    uint32_t dl = 0;
-    int isLeap = (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
-    if(isLeap)
-    {
-        dl = ((year-1971) * 366);
-    }
-    else
-    {
-        dl = ((year-1971) * 365);
-    }
-
-    uint32_t di = 0;
-    di += days_of_month((year-1971), month-1);
-    dl += di;
-    dm = dl-days;
-    //serialprintf("%d:%d\n", dm, days);
-
-    if(hours > 12)
-    {
-        isPM = 1;
-    }
+    getDateTimeFromTimestamp(timeofday, &day, &month, &year, &hours, &minutes);
 
     if(format == 0)
     {
         // DD/MM/YY HH:mm:ss
         memset(str, 0, strlen(str));
-        strcat(str, itoa_r(dm,10));
-        strcat(str, "/");
-        strcat(str, itoa_r(month,10));
-        strcat(str,"/");
-        strcat(str, itoa_r(year,10));
-        strcat(str," ");
-        strcat(str,itoa_r(hours,10));
-        strcat(str,":");
-        strcat(str,itoa_r(minutes,10));
-        strcat(str,":");
-        strcat(str,itoa_r(seconds,10));
-        strcat(str, "\0");
+        sprintf(str, "%02d/%d/%04d %02d:%02d", day, month, year, hours, minutes);
     }
 }
 

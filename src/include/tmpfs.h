@@ -26,6 +26,8 @@ typedef struct tmpfs_struct
     uint32_t n_files;
     uint32_t size;
 
+    FILE* root;
+
     tmpfs_file_t* bitmap;
 }tmpfs_t;
 

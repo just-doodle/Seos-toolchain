@@ -15,7 +15,9 @@ typedef struct stackframe
 
 void panic(char* message, char* file);
 void kernel_panic(const char* message);
+void kernel_panic_noHalt(const char* message);
 void stack_trace(uint32_t maxframes);
 void xxd(void* ptr, uint32_t size);
+int validate(void* ptr);
 
 #endif /*__DEBUG_H__*/

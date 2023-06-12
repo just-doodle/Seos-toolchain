@@ -1,4 +1,5 @@
 #include "charbuffer.h"
+#include "vfs.h"
 
 charbuffer_t* create_charbuffer(uint32_t size)
 {
@@ -115,4 +116,24 @@ void charbuffer_dump(charbuffer_t* buf, char* buffer)
     memcpy(buffer, buf->buffer, buf->rw_ptr);
     buffer[buf->rw_ptr-1] = 0;
     charbuffer_clean(buf);
+}
+
+void charbuffer_dump_noclean(charbuffer_t* buf, char* buffer)
+{
+    if(buf == NULL || buffer == NULL)
+        return;
+
+    memcpy(buffer, buf->buffer, buf->rw_ptr);
+    buffer[buf->rw_ptr-1] = 0;
+}
+
+void charbuffer_dump_to_file(charbuffer_t* buf, char* file)
+{
+    if(buf == NULL || file == NULL)
+        return;
+
+    uint32_t sz = buf->rw_ptr;
+    FILE* f = file_open(file, OPEN_RDWR);
+    vfs_write(f, 0, sz, buf->buffer);
+    vfs_close(f);
 }

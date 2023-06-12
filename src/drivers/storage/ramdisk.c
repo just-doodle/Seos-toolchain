@@ -1,5 +1,7 @@
 #include "ramdisk.h"
 
+#define RAMDISK_BASE_NAME "ram"
+
 int c_ramdisk = 0;
 
 uint32_t ramdisk_read(FILE* f, uint32_t offset, size_t size, char* buffer)
@@ -40,7 +42,7 @@ FILE* get_node(ramdisk_t* ramdisk)
 {
     FILE* f = ZALLOC_TYPES(FILE);
 
-    strcpy(f->name, "rdisk");
+    strcpy(f->name, RAMDISK_BASE_NAME);
     strcat(f->name, itoa_r(ramdisk->num, 10));
     f->inode_num = ramdisk->num;
     f->device = ramdisk;
@@ -87,7 +89,7 @@ void add_ramdisk_file(char* file, int isWritable)
         printf("[RAMDISK] File not found: %s\n", file);
         return;
     }
-    if(strstr(file, "rdisk") != NULL)
+    if(strstr(file, RAMDISK_BASE_NAME) != NULL)
     {
         return;
     }

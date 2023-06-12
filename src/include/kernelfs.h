@@ -6,22 +6,15 @@
 #include "string.h"
 #include "devfs.h"
 
-#define KERNELFS_MAX_NODES 512
-
-#define KERNELFS_TYPE_UNSIGNED_NUMBER 0
-#define KERNELFS_TYPE_SIGNED_NUMBER 1
-#define KERNELFS_TYPE_STRING 2
-#define KERNELFS_TYPE_DATA_BUFFER 3
-
-typedef struct kernelfs_struct
+typedef struct kernelfs_node_struct
 {
-    char name[64];
-    uint32_t size;
+    char name[32];
     void* ptr;
-    int type;
-}kernelfs_t;
+    uint32_t len;
+    listnode_t* self;
+}kernelfs_node_t;
 
-void init_kernelfs();
-void kernelfs_add_variable(char* name, void* ptr, uint32_t size, int type);
+void init_kernelfs(char* mountpoint);
+void kernelfs_add_variable(char* name, void* ptr, uint32_t len);
 
 #endif /*__KERNELFS_H__*/

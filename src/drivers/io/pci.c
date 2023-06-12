@@ -304,7 +304,7 @@ int pci_isDeviceAvailable(uint16_t vendor_id, uint16_t device_id)
 {
 	pci_t t = pci_get_device(vendor_id, device_id, -1);
 
-	if(memcmp((uint8_t*)&t, (uint8_t*)&dev_zero, sizeof(pci_t)) == 0)
+	if(memcmp((uint8_t*)&t, (uint8_t*)&dev_zero, sizeof(pci_t)) == 1)
 	{
 		return 0;
 	}
@@ -312,4 +312,51 @@ int pci_isDeviceAvailable(uint16_t vendor_id, uint16_t device_id)
 	{
 		return 1;
 	}
+}
+
+pci_bar_t GetBaseAddressRegister(pci_t dev, uint16_t bar)
+{
+    pci_bar_t result;
+
+    uint32_t headertype = pci_read(dev, PCI_OFF_HEADER_TYPE) & 0x7F;
+    int maxBARs = 6 - (4 * headertype);
+    if (bar >= maxBARs)
+        return result;
+
+    uint32_t bar_value = pci_read(dev, 0x10 + 4 * bar);
+    result.type = (bar_value & 0x1) ? PCI_DEVTYPE_IO : PCI_DEVTYPE_MMIO;
+    uint32_t temp;
+
+    if (result.type == PCI_DEVTYPE_MMIO)
+    {
+
+        switch ((bar_value >> 1) & 0x3)
+        {
+
+        case 0: // 32 Bit Mode
+        case 1: // 20 Bit Mode
+        case 2: // 64 Bit Mode
+            break;
+        }
+    }
+    else // InputOutput
+    {
+        result.address = (uint8_t *)(bar_value & ~0x3);
+        result.prefetchable = false;
+    }
+
+    return result;
+}
+
+uint16_t pci_get_portBase(pci_t dev)
+{
+	uint16_t portBase = 0;
+	for (int barNum = 0; barNum < 6; barNum++)
+    {
+        pci_bar_t bar = GetBaseAddressRegister(dev, barNum);
+        if (bar.address && (bar.type == InputOutput))
+            portBase = (uint32_t)bar.address;
+    }
+
+	return portBase;
 }

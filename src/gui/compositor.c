@@ -36,7 +36,7 @@ void fill(uint32_t color)
         fb[i] = color;
 }
 
-char time[64];
+char time[128];
 
 void show_time()
 {
@@ -143,9 +143,20 @@ void compositor_background_fill()
         draw_rect_pixels(&screen_canvas, &wallpaper);
 }
 
+int q = 0;
+
 void win_timer()
 {
     t++;
+    q++;
+
+    if(q == 100)
+    {
+        show_time();
+        q = 0;
+    }
+
+
     if(t == 40)
     {
         window_drawall();

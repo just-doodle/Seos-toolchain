@@ -6,9 +6,30 @@
 #include "compositor.h"
 #include "rtc.h"
 #include "timer.h"
+#include "mount.h"
+#include "logdisk.h"
+#include "dhcp.h"
+
+int syscall_reboot()
+{
+    ldprintf("syscall", LOG_INFO, "Process %d, #%d [%s] has requested reboot of system.", current_process->pid, current_process->uid, current_process->filename);
+    if(current_process->uid == USER_ID_ROOT)
+    {
+        ldprintf("syscall", LOG_WARN, "Rebooting system...");
+        logdisk_dump("/kernelReboot.log");
+        reboot();
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+int syscall_uname(struct utsname* name);
 
 void * syscall_table[MAX_SYSCALLS] = {
-    text_putc, //0
+    serial_putc, //0
     exit, //1
     attach_handler, //2
     fd_open, //3
@@ -39,6 +60,20 @@ void * syscall_table[MAX_SYSCALLS] = {
     fd_readdir, //28
     gettimeofday, //29
     window_swapBuffer, //30
+    getcwd, //31
+    chdir, //32
+    fd_ioctl, //33
+    umask, // 34
+    access, //35
+    syscall_uname, //36
+    syscall_mount, //37
+    sethostname, //38
+    gethostname, //39
+    getuid, //40
+    setuid, //41
+    syscall_reboot, //42
+    chmod, //43
+    vfs_mkdir, //44
 };
 
 void syscall_create_process(char* name, void* entrypoint)
@@ -73,4 +108,26 @@ void syscall_handler(registers_t *reg)
 void init_syscall()
 {
     register_interrupt_handler(0x80, syscall_handler);
+}
+
+int syscall_uname(struct utsname* name)
+{
+    if(validate(name) != 1)
+        return -1;
+
+    char versionNumber[_UTSNAME_LENGTH];
+    sprintf(versionNumber, "%s", KERNEL_VERSION);
+    char versionText[_UTSNAME_LENGTH];
+    sprintf(versionText, "%s %s %s %s", KERNEL_VERSION_CODENAME, KERNEL_ENABLED_OPTIONS, KERNEL_BUILD_DATE, KERNEL_BUILD_TIME);
+
+    strcpy(name->sysname, KERNEL_NAME);
+    char* hname = zalloc(256);
+    gethostname(hname);
+    strcpy(name->nodename, hname);
+    free(hname);
+    strcpy(name->domainname, "");
+    strcpy(name->machine, KERNEL_ARCH);
+    strcpy(name->release, versionNumber);
+    strcpy(name->version, versionText);
+    return 0;
 }

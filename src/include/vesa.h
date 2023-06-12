@@ -4,6 +4,7 @@
 #include "system.h"
 #include "string.h"
 #include "serial.h"
+#include "paging.h"
 
 typedef struct VBE_INFO
 {

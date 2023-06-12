@@ -20,6 +20,8 @@ typedef struct charbuffer_struct
 
 charbuffer_t* create_charbuffer(uint32_t size);
 
+void charbuffer_printf(charbuffer_t* b, char* fmt, ...);
+
 void charbuffer_push(charbuffer_t* buf, char val);
 char charbuffer_pop(charbuffer_t* buf);
 
@@ -31,5 +33,6 @@ void charbuffer_wait(charbuffer_t* buf, uint32_t size);
 void charbuffer_waitchar(charbuffer_t* buf, char c);
 
 void charbuffer_dump(charbuffer_t* buf, char* buffer);
+void charbuffer_dump_to_file(charbuffer_t* buf, char* file);
 
 #endif /*__CHARBUFFER_H__*/

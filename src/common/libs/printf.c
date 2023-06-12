@@ -7,9 +7,8 @@ int is_fmt_letter(char c)
     return c == 'c' || c == 'd' || c == 'i' || c == 'e' || c == 'E' || c == 'f' || c == 'g' || c == 'G' || c == 'o' || c == 's' || c == 'u' || c == 'x' || c == 'X' || c == 'p' || c == 'n';
 }
 
-void vsprintf(char *str, void (*putchar)(char), const char *fmt, va_list arg)
+void vsprintf_helper(char *str, void (*putchar)(char), const char *fmt, uint32_t* pos,  va_list arg)
 {
-    static uint32_t* pos;
     char c;
     int sign, ival, sys;
     char buf[512];
@@ -144,6 +143,12 @@ void vsprintf(char *str, void (*putchar)(char), const char *fmt, va_list arg)
             (*putchar)(c);
         }
     }
+}
+
+void vsprintf(char * str, void (*putchar)(char), const char * format, va_list arg)
+{
+    uint32_t pos = 0;
+    vsprintf_helper(str, putchar, format, &pos, arg);
 }
 
 void printf(const char* fmt, ...)

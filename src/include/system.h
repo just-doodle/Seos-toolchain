@@ -24,6 +24,7 @@ typedef signed long int64_t;
 
 typedef uint32_t size_t;
 typedef unsigned long ul_t;
+typedef uint32_t uintptr_t;
 
 
 #define khalt asm("cli"); \
@@ -42,7 +43,21 @@ typedef unsigned long ul_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "6.23.05.1NR"
+#define KERNEL_VERSION "6.23.06.1NR"
+#define KERNEL_VERSION_CODENAME "Mystic Mango"
+
+#define KERNEL_ENABLED_OPTIONS "\b"
+
+#if __ENABLE_DEBUG_SYMBOL_LOADING__
+#undef KERNEL_ENABLED_OPTIONS
+#define KERNEL_ENABLED_OPTIONS "ELF_SYMS_LOAD"
+#endif
+
+#define KERNEL_BUILD_DATE __DATE__
+#define KERNEL_BUILD_TIME __TIME__
+
+#define KERNEL_NAME "SectorOS-RW4"
+#define KERNEL_ARCH "x86"
 
 #define KB 1024
 #define MB (1024*KB)

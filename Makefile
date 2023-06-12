@@ -9,7 +9,7 @@ FILESDIR=files
 OSTOOL_DIR=~/sysroot/usr/bin/
 
 CC=$(TOOLDIR)/i686-elf-gcc
-CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -g -O0
+CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -g -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=0
 
 CXX=$(TOOLDIR)/i686-elf-g++
 CXXFLAGS=
@@ -29,7 +29,7 @@ OBJDUMP = i686-elf-objdump
 
 OBJCOPYFLAGS = --strip-debug --strip-unneeded
 
-QEMU=qemu-system-i386
+QEMU=sudo qemu-system-i386
 QEMUFLAGS=-cdrom $(ISOFILE) -m 3098M -boot d -hda sorhd -serial stdio
 QEMUDFLAGS= -s -S -daemonize -m 64M
 
@@ -38,6 +38,8 @@ PROJECT=SectorOS-RW4
 EXECUTABLE=$(PROJECT).elf
 ISOFILE=$(PROJECT).iso
 IMAGEFILE=sorhd
+
+NETWORK_INTERFACE = enp2s0
 
 OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/boot/boot.o \
@@ -87,15 +89,34 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/gui/compositor.o \
 			$(SRCDIR)/drivers/video/ifb.o \
 			$(SRCDIR)/drivers/hal/timer.o \
+			$(SRCDIR)/drivers/hal/net.o \
 			$(SRCDIR)/gui/bitmap.o \
 			$(SRCDIR)/gui/font/font.o \
 			$(SRCDIR)/gui/font/font_parser.o \
 			$(SRCDIR)/drivers/video/vga_text.o \
 			$(SRCDIR)/drivers/video/vesa.o \
-			$(SRCDIR)/drivers/video/vidtext.o \
+			$(SRCDIR)/drivers/video/se_term.o \
 			$(SRCDIR)/drivers/io/serial.o \
+			$(SRCDIR)/drivers/storage/nulldev.o \
+			$(SRCDIR)/drivers/storage/logdisk.o \
+			$(SRCDIR)/drivers/io/portdev.o \
 			$(SRCDIR)/drivers/time/rtc.o \
 			$(SRCDIR)/drivers/input/keyboard.o \
+			$(SRCDIR)/drivers/ethernet/rtl8139.o \
+			$(SRCDIR)/drivers/ethernet/pcnet.o \
+			$(SRCDIR)/drivers/ethernet/loopback.o \
+			$(SRCDIR)/network/ethernet.o \
+			$(SRCDIR)/network/netutils.o \
+			$(SRCDIR)/network/arp.o \
+			$(SRCDIR)/network/ipv4.o \
+			$(SRCDIR)/network/udp.o \
+			$(SRCDIR)/network/dhcp.o \
+			$(SRCDIR)/network/tcp.o \
+			$(SRCDIR)/limine-terminal/flanterm/backends/fb.o \
+			$(SRCDIR)/limine-terminal/flanterm/flanterm.o \
+			$(SRCDIR)/limine-terminal/stb_image.o \
+			$(SRCDIR)/limine-terminal/image.o \
+			$(SRCDIR)/limine-terminal/term.o \
 			$(SRCDIR)/memory/kheap.o \
 			$(SRCDIR)/memory/paging.o \
 			$(SRCDIR)/memory/pmm.o \
@@ -129,8 +150,8 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 	@echo 'set root=(cd)' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "$(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0' >> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'module /boot/sorhd' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0' --loglevel 5 --network_enable_loopback >> $(PROJECT)/boot/grub/grub.cfg
+	@#echo 'module /boot/sorhd' >> $(PROJECT)/boot/grub/grub.cfg
 	@#echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
@@ -174,6 +195,7 @@ stripd: $(EXECUTABLE)
 create_test_program:
 	@echo "[i686-sectoros-gcc] files/user.elf"
 	@$(OSTOOL_DIR)/i686-sectoros-gcc $(SRCDIR)/tools/user.c -o files/user.elf -g
+	@$(OSTOOL_DIR)/i686-sectoros-gcc $(SRCDIR)/tools/uname.c -o files/uname -g
 
 forcerun: clean iso run
 forcerund: clean iso rund
@@ -185,3 +207,37 @@ clean:
 
 clean_objs:
 	@rm -f $(OBJECTS) $(SRCDIR)
+
+setupTAP:
+	@printf '$(BLU)Setting up tap\n$(RESET)'
+	sudo brctl addbr br0
+	sudo ip addr flush dev $(NETWORK_INTERFACE)
+	sudo brctl addif br0 $(NETWORK_INTERFACE)
+	sudo tunctl -t tap0 -u `whoami`
+	sudo brctl addif br0 tap0
+	sudo ifconfig $(NETWORK_INTERFACE) up
+	sudo ifconfig tap0 up
+	sudo ifconfig br0 up
+	sudo dhclient -v br0
+
+stopTAP:
+	@sudo brctl delif br0 tap0
+	@sudo tunctl -d tap0
+	@sudo brctl delif br0 $(NETWORK_INTERFACE)
+	@sudo ifconfig br0 down
+	@sudo brctl delbr br0
+	@sudo ifconfig $(NETWORK_INTERFACE) up
+	@sudo dhclient -v $(NETWORK_INTERFACE)
+
+stopTAP1:
+	@sudo ifconfig br0 down
+	@sudo brctl delbr br0
+	@sudo ifconfig $(NETWORK_INTERFACE) up
+	@sudo dhclient -v $(NETWORK_INTERFACE)
+
+runnet: $(ISOFILE) setupTAP
+	sudo $(QEMU) $(QEMUFLAGS) -accel kvm -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device rtl8139,netdev=mynet0,mac=52:55:00:d1:55:01 | tee k.log
+	make stopTAP
+
+runnet2: $(ISOFILE)
+	sudo $(QEMU) $(QEMUFLAGS) -accel kvm -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device rtl8139,netdev=mynet0,mac=52:55:00:d1:55:01 | tee k.log

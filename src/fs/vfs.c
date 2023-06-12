@@ -1,5 +1,7 @@
 #include "vfs.h"
 #include "sorfs.h"
+#include "logdisk.h"
+#include "process.h"
 
 tree_t *vfs_tree;
 vfs_node* vfs_root;
@@ -18,7 +20,7 @@ void vfs_db_listdir(char *name)
     vfs_node *n = file_open(name, 0);
     if (!n)
     {
-        printf("Could not list a directory that does not exist\n");
+        ldprintf("vfs->db_listdir", LOG_ERR, "Tried to list a directory that does not exist. %s", name);
         return;
     }
     if (!n->listdir)
@@ -28,14 +30,11 @@ void vfs_db_listdir(char *name)
     while (*files)
     {
         printf("%s ", *files);
-        serialprintf("%s ", *files);
         kfree(*files);
         files++;
     }
-    serialprintf("JKLKVD\n");
     kfree(save);
     printf("\n");
-    serialprintf("\n");
 }
 
 char** vfs_listdir(char* path)
@@ -43,7 +42,7 @@ char** vfs_listdir(char* path)
     vfs_node *n = file_open(path, 0);
     if (!n)
     {
-        printf("Could not list a directory that does not exist\n");
+        ldprintf("vfs->listdir", LOG_ERR, "Tried to list a directory that does not exist. %s", path);
         return NULL;
     }
     if (!n->listdir)
@@ -100,12 +99,12 @@ uint32_t find_fs(char* device)
 {
     if(isSORFS(device) == 1)
     {
-        printf("[FS PROBER] Found SORFS filesystem on %s\n", device);
+        ldprintf("vfs->find_fs", LOG_INFO, "Found SORFS filesystem on %s", device);
         return FS_TYPE_SORFS;
     }
     else
     {
-        printf("[FS PROBER] No filesystem found on %s\n", device);
+        ldprintf("vfs->find_fs", LOG_ERR, "No filesystem found on %s", device);
         return 0;
     }
 }
@@ -117,6 +116,7 @@ uint32_t vfs_write(vfs_node *file, uint32_t offset, uint32_t size, char *buffer)
         uint32_t ret = file->write(file, offset, size, buffer);
         return ret;
     }
+    ldprintf("vfs->write", LOG_ERR, "Cannot write to given file as it not exist or the file is not write enabled");
     return -1;
 }
 
@@ -124,7 +124,7 @@ void vfs_open(struct vfs_node *node, uint32_t flags)
 {
     if (!node)
     {
-        printf("[VFS] Could not open a file that does not exist\n");
+        ldprintf("vfs->open", LOG_ERR, "Given file does not exist");
         return;
     }
     if (node->ref_count >= 0)
@@ -135,7 +135,10 @@ void vfs_open(struct vfs_node *node, uint32_t flags)
 void vfs_close(vfs_node *node)
 {
     if (!node || node == vfs_root || node->ref_count == -1)
+    {
+        //ldprintf("vfs->close", LOG_ERR, "Error occurred during closing the given file");
         return;
+    }
     node->ref_count--;
     if (node->ref_count == 0)
         node->close(node);
@@ -167,6 +170,7 @@ void vfs_mkdir(char *name, unsigned short permission)
     char *dirname = strdup(name);
     char *save_dirname = dirname;
     char *parent_path = PATH_SEPARATOR_STRING;
+    ldprintf("vfs->mkdir", LOG_INFO, "Creating a new directory: %s with permission", name, permission);
     while (i >= 0)
     {
         if (dirname[i] == '/')
@@ -185,6 +189,7 @@ void vfs_mkdir(char *name, unsigned short permission)
     vfs_node *parent_node = file_open(parent_path, 0);
     if (!parent_node)
     {
+        ldprintf("vfs->mkdir", LOG_ERR, "Parent directory of given path does not exist");
         kfree(save_dirname);
     }
 
@@ -201,6 +206,7 @@ int vfs_create(char *name, unsigned short permission)
     char *dirname = strdup(name);
     char *save_dirname = dirname;
     char *parent_path = PATH_SEPARATOR_STRING;
+    ldprintf("vfs->create", LOG_INFO, "Creating a new file %s with permission %d", name, permission);
     while (i >= 0)
     {
         if (dirname[i] == '/')
@@ -219,6 +225,7 @@ int vfs_create(char *name, unsigned short permission)
     vfs_node *parent_node = file_open(parent_path, 0);
     if (!parent_node)
     {
+        ldprintf("vfs->create", LOG_ERR, "Parent directory of given path does not exist");
         kfree(save_dirname);
         return -1;
     }
@@ -337,14 +344,6 @@ vfs_node *file_open(char *file_name, uint32_t flags)
     while (filename != NULL && ((curr_token = strsep(&new_start, PATH_SEPARATOR_STRING)) != NULL))
     {
         nextnode = vfs_finddir(startpoint, curr_token);
-        if (!nextnode)
-        {
-            if(flags & OPEN_CREAT)
-            {
-                vfs_create(save, 777);
-                return file_open(save, flags);
-            }
-        }
         startpoint = nextnode;
         if(strcmp(nextnode->name, "/") == 0)
         {
@@ -353,6 +352,14 @@ vfs_node *file_open(char *file_name, uint32_t flags)
     }
     if (!nextnode)
         nextnode = startpoint;
+    if (!nextnode)
+    {
+        if(((flags & OPEN_WRONLY) == OPEN_WRONLY) || ((flags & OPEN_RDWR) == OPEN_RDWR))
+        {
+            vfs_create(save, ((current_process == NULL) ? 777 : current_process->umask));
+            return file_open(save, flags);
+        }
+    }
     vfs_open(nextnode, flags);
     kfree(save);
     kfree(free_filename);
@@ -361,14 +368,13 @@ vfs_node *file_open(char *file_name, uint32_t flags)
 
 void init_vfs()
 {
-    printf("[VFS] Initializing vfs...\n");
+    ldprintf("vfs", LOG_INFO, "Initializing...");
     vfs_tree = tree_create();
     struct vfs_entry *root = (vfs_entry*)kmalloc(sizeof(struct vfs_entry));
     root->name = strdup("root");
     root->file = NULL;
     tree_insert(vfs_tree, NULL, root);
-
-    printf("[VFS] Virtual FileSystem successfully initialized\n");
+    ldprintf("vfs", LOG_INFO,  "Virtual FileSystem successfully initialized");
 }
 
 void vfs_mountDev(char *mountpoint, vfs_node *node)
@@ -386,7 +392,7 @@ void vfs_mount_recur(char *path, treenode_t *subroot, vfs_node *fs_obj)
         struct vfs_entry *ent = (struct vfs_entry *)subroot->data;
         if (ent->file)
         {
-            printf("[VFS] A Device is already mounted at the path. Please unmount and try again\n");
+            ldprintf("vfs->mount", LOG_ERR, "A Device is already mounted at the path. Please unmount and try again.");
             return;
         }
         if (!strcmp(ent->name, PATH_SEPARATOR_STRING)) vfs_root = fs_obj;
@@ -418,12 +424,13 @@ void vfs_mount(char *path, vfs_node *fs_obj)
 {
     fs_obj->ref_count = -1;
     fs_obj->fs_type = 0;
+    ldprintf("vfs->mount", LOG_INFO, "Mounted given node to %s", path);
     if (path[0] == '/' && strlen(path) == 1)
     {
         vfs_entry *ent = (vfs_entry *)vfs_tree->root->data;
         if (ent->file)
         {
-            printf("[VFS] A Device is already mounted at the path. Please unmount and try again\n");
+            ldprintf("vfs->mount", LOG_ERR, "A Device is already mounted at the path. Please unmount and try again.");
             return;
         }
         vfs_root = fs_obj;
@@ -476,4 +483,13 @@ void vfs_unmount(char *path)
         return;
     }
     vfs_unmount_recur(path + 1, vfs_tree->root);
+}
+
+int vfs_ioctl(FILE* f, int req, void* data)
+{
+    ldprintf("vfs->ioctl", LOG_DEBUG, "Got ioctl request %d", req);
+    if(validate(data) != 1)
+        return -1;
+    if(f && f->ioctl)
+        return f->ioctl(f, req, data);
 }

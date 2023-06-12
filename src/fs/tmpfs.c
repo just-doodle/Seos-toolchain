@@ -1,19 +1,20 @@
 #include "tmpfs.h"
 #include "rtc.h"
 #include "timer.h"
+#include "mount.h"
 
 //Single mountpoint file system
 
 int curr_idx;
 
-tmpfs_file_t* files;
-
-FILE* root;
+#include "logdisk.h"
 
 void init_tmpfs(char* mountpoint)
 {
+    ldprintf("tmpfs", LOG_DEBUG, "Mounting to %s", mountpoint);
     tmpfs_t* fs = ZALLOC_TYPES(tmpfs_t);
-    root = ZALLOC_TYPES(FILE);
+    fs->root = ZALLOC_TYPES(FILE);
+    FILE* root = fs->root;
 
     struct timeval t;
     gettimeofday(&t, NULL);
@@ -32,16 +33,24 @@ void init_tmpfs(char* mountpoint)
 
     root->flags = FS_DIRECTORY;
 
-    files = zalloc(sizeof(tmpfs_file_t)*TMPFS_MAX_FILES);
-    fs->bitmap = files;
+    fs->bitmap = zalloc(sizeof(tmpfs_file_t)*TMPFS_MAX_FILES);
 
-    vfs_mount(mountpoint, root);
+    if(mount_list != NULL)
+    {
+        mount_info_t* m = ZALLOC_TYPES(mount_info_t);
+        m->device = "ram";
+        m->mountpoint = strdup(mountpoint);
+        m->fs_type = FS_TYPE_TMPFS;
+        list_push(mount_list, m);
+    }
+
+    vfs_mount(mountpoint, fs->root);
 }
 
 uint32_t tmpfs_read(FILE* f, uint32_t offset, uint32_t size, char* buffer)
 {
     tmpfs_t* fs = f->device;
-    tmpfs_file_t* file = &(files[f->inode_num]);
+    tmpfs_file_t* file = &(fs->bitmap[f->inode_num]);
 
     if(file == NULL)
         return -1;
@@ -57,7 +66,7 @@ uint32_t tmpfs_read(FILE* f, uint32_t offset, uint32_t size, char* buffer)
 uint32_t tmpfs_write(FILE* f, uint32_t offset, uint32_t size, char* buffer)
 {
     tmpfs_t* fs = f->device;
-    tmpfs_file_t* file = &(files[f->inode_num]);
+    tmpfs_file_t* file = &(fs->bitmap[f->inode_num]);
 
     uint32_t size_needed = 0;
 
@@ -85,14 +94,15 @@ uint32_t tmpfs_write(FILE* f, uint32_t offset, uint32_t size, char* buffer)
 
 DirectoryEntry* tmpfs_readdir(FILE* node, uint32_t index)
 {
-    if(node == root)
-    {
-        DirectoryEntry* d = ZALLOC_TYPES(DirectoryEntry);
-        tmpfs_file_t* f = &files[index];
-        d->inode_count = f->idx;
-        strcpy(d->name, f->self->name);
-        return d;
-    }
+    tmpfs_t* fs = node->device;
+    if(index > (fs->n_files-1))
+        return NULL;
+    DirectoryEntry* d = ZALLOC_TYPES(DirectoryEntry);
+    tmpfs_file_t* f = &(fs->bitmap[index]);
+    d->inode_count = f->idx;
+    strcpy(d->name, f->self->name);
+    ldprintf("tmpfs", LOG_DEBUG, "Got readdir request. Returning : {\"%s\", %d}", f->self->name, f->idx);
+    return d;
 }
 
 char** tmpfs_listdir(FILE* parent)
@@ -100,12 +110,12 @@ char** tmpfs_listdir(FILE* parent)
     tmpfs_t* fs = parent->device;
     register int i = 0;
 
-    char** list = kmalloc(sizeof(char*)*(curr_idx + 1));
-    for(i = 0; i < curr_idx; i++)
+    char** list = kmalloc(sizeof(char*)*(fs->n_files + 1));
+    for(i = 0; i < fs->n_files; i++)
     {
         list[i] = kmalloc(sizeof(char) * 256);
-        strcpy(list[i], files[i].self->name);
-        serialprintf("%d: %s:%s\n", i, list[i],files[i].self->name);
+        strcpy(list[i], fs->bitmap[i].self->name);
+        serialprintf("%d: %s:%s\n", i, list[i], fs->bitmap[i].self->name);
     }
     list[i] = NULL;
     return list;
@@ -116,9 +126,9 @@ FILE* tmpfs_finddir(FILE* parent, char* name)
     tmpfs_t* fs = parent->device;
     register int i = 0;
 
-    for(i = 0; i < (curr_idx); i++)
+    for(i = 0; i < (fs->n_files); i++)
     {
-        FILE* f = files[i].self;
+        FILE* f = fs->bitmap[i].self;
         if(strcmp(f->name, name) == 0)
         {
             return f;
@@ -129,34 +139,29 @@ FILE* tmpfs_finddir(FILE* parent, char* name)
 
 void tmpfs_create(FILE* parent, char* name, uint32_t permission)
 {
-    if(parent == root)
-    {
-        tmpfs_t* fs = root->device;
-        uint32_t idx = curr_idx++;
-
-        files[idx].idx = idx;
-        files[idx].magic = TMPFS_MAGIC;
-        files[idx].current_size = 10;
-        files[idx].buffer = zalloc(10);
-        files[idx].self = ZALLOC_TYPES(FILE);
-        strcpy(files[idx].self->name, name);
-        files[idx].self->open = tmpfs_open;
-        files[idx].self->close = tmpfs_close;
-        files[idx].self->read = tmpfs_read;
-        files[idx].self->write = tmpfs_write;
-        files[idx].self->get_filesize = tmpfs_getfilesize;
-        files[idx].self->inode_num = idx;
-        files[idx].self->device = fs;
-        files[idx].self->size = 100;
-        files[idx].self->flags |= FS_FILE;
-        files[idx].self->mask = permission & 0xFFF;
-        files[idx].self->creation_time = gettimeofday_seconds();
-
-        fs->size += 10;
-        fs->n_files++;
-
-        serialprintf("[TMPFS] File created \"/tmp/%s\"\n", name);
-    }
+    tmpfs_t* fs = parent->device;
+    uint32_t idx = fs->n_files++;
+    tmpfs_file_t* files = fs->bitmap;
+    files[idx].idx = idx;
+    files[idx].magic = TMPFS_MAGIC;
+    files[idx].current_size = 10;
+    files[idx].buffer = zalloc(10);
+    files[idx].self = ZALLOC_TYPES(FILE);
+    strcpy(files[idx].self->name, name);
+    files[idx].self->open = tmpfs_open;
+    files[idx].self->close = tmpfs_close;
+    files[idx].self->read = tmpfs_read;
+    files[idx].self->write = tmpfs_write;
+    files[idx].self->get_filesize = tmpfs_getfilesize;
+    files[idx].self->inode_num = idx;
+    files[idx].self->device = fs;
+    files[idx].self->size = 100;
+    files[idx].self->flags |= FS_FILE;
+    files[idx].self->mask = permission & 0xFFF;
+    files[idx].self->creation_time = gettimeofday_seconds();
+    fs->size += 100;
+    serialprintf("[TMPFS] File created \"/tmp/%s\"\n", name);
+    
 }
 
 void tmpfs_open(FILE* f, uint32_t flags)
@@ -166,12 +171,9 @@ void tmpfs_open(FILE* f, uint32_t flags)
 
 uint32_t tmpfs_getfilesize(FILE* f)
 {
-    if(f->device == root->device)
-    {
-        uint32_t size = files[root->inode_num].current_size;
-        return size;
-    }
-    return -1;
+    tmpfs_t* fs = f->device;
+    uint32_t size = fs->bitmap[f->inode_num].current_size;
+    return size;
 }
 
 void tmpfs_close(FILE* f)
@@ -179,15 +181,14 @@ void tmpfs_close(FILE* f)
     return;
 }
 
-void tmpfs_debug_list()
+void tmpfs_debug_list(tmpfs_t* fs)
 {
-    tmpfs_t* fs = root->device;
     uint32_t nf = fs->n_files;
     register int i = 0;
 
-    for(i = 0; i < curr_idx; i++)
+    for(i = 0; i < nf; i++)
     {
-        FILE* f = files[i].self;
+        FILE* f = fs->bitmap[i].self;
         serialprintf("%s ", f->name);
         printf("%s ", f->name);
     }

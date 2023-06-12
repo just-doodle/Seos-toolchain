@@ -1,13 +1,48 @@
 #include "debug.h"
 #include "elf_loader.h"
 #include "process.h"
+#include "logdisk.h"
+
+void kernel_atCrash()
+{
+    logdisk_dump("/kernel.log");
+}
 
 void kernel_panic(const char* message)
 {
-    text_chcolor(VGA_LIGHT_RED, text_getBG());
-    printf("kernel panic: - %s\n", message);
-    serialprintf("kernel panic: - %s\n", message);
+    ldprintf("KERNEL PANIC", LOG_ERR, "%s", message);
+    logdisk_change_policy(LOG_OFF);
+    kernel_atCrash();
     while(1);
+}
+
+void kernel_panic_noHalt(const char* message)
+{
+    ldprintf("KERNEL PANIC", LOG_ERR, "%s", message);
+    logdisk_change_policy(LOG_OFF);
+    kernel_atCrash();
+}
+
+int validate(void* ptr)
+{
+    if(ptr == NULL)
+        return 0;
+    if(virt2phys(kernel_page_dir, ptr) == NULL)
+    {
+        if(current_process != NULL && current_process->page_dir != NULL)
+        {
+            if(virt2phys(current_process->page_dir, ptr) == NULL)
+            {
+                return 0;
+            }
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 void stack_trace(uint32_t maxframes)

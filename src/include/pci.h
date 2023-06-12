@@ -24,6 +24,21 @@ typedef union pci
     };
 } pci_t;
 
+enum BaseAddressRegisterType
+{
+    MemoryMapping = 0,
+    InputOutput = 1
+};
+
+typedef struct bar_struct
+{
+    bool prefetchable;
+    uint8_t* address;
+    uint32_t size;
+    enum BaseAddressRegisterType type;
+}pci_bar_t;
+
+
 #define PCI_CONFIG_PORT 0xCF8
 #define PCI_DATA_PORT 0xCFC
 

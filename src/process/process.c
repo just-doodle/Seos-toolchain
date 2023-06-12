@@ -8,6 +8,8 @@ list_t *process_list;
 pcb_t *current_process;
 pcb_t *last_process;
 
+char p__cwd[512];
+
 pid_t curr_pid;
 registers_t saved_context;
 
@@ -222,6 +224,8 @@ void execve(char* file, char** argv, char** env)
         copy_page_dir(p1->page_dir, kernel_page_dir);
         p1->regs.cr3 = (uint32_t)virt2phys(kernel_page_dir, p1->page_dir);
 
+        p1->handler = 0;
+
         for(int j = 0; argv[j] != NULL; j++)
         {
             p1->args.argc++;
@@ -271,6 +275,24 @@ pargs_t* get_args()
     memset(&a, 0, sizeof(pargs_t));
     a = current_process->args;
     return &a;
+}
+
+void getcwd(char* buf, uint32_t sz)
+{
+    strncpy(buf, current_process->cwd, sz);
+}
+
+int chdir(char* path)
+{
+    if(path == NULL)
+    {
+        return -1;
+    }
+    current_process->cwdlen = strlen(path);
+    if(current_process->cwd != NULL)
+        free(current_process->cwd);
+    current_process->cwd = strdup(path);
+    return 0;
 }
 
 void create_process(char* file)
@@ -394,7 +416,6 @@ void process_kbh(uint8_t scancode)
         case 0x40:
             if(isPause)
             {
-                vidtext_debug_dump();
                 isPause = false;
             }
             break;
@@ -433,15 +454,28 @@ void process_kbh(uint8_t scancode)
 
     process_kbhandler_t handler = current_process->handler;
 
-    if (handler == 0)
+    if ((validate(current_process->handler) == 1))
     {
-        return;
+        current_process->handler(key, isCTRL, isALT, scancode);
     }
-
-    handler(key, isCTRL, isALT, scancode);
 }
 
 uint32_t process_get_ticks()
 {
     return current_process->ticks_since_boot;
+}
+
+uint32_t getuid()
+{
+    return current_process->uid;
+}
+
+int setuid(uint32_t new_uid)
+{
+    if(current_process->uid == USER_ID_ROOT)
+    {
+        current_process->uid = new_uid;
+        return 0;
+    }
+    return -1;
 }

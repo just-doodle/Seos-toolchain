@@ -193,3 +193,30 @@
 * Updated README.md
 * Updated files for patch of newlib
 * Added screenshots of OS to docs/assets folder
+
+12-06-2023: 02:03 PM IST v6.23.06.1NR
+* Ported limine terminal to the os
+* Improved tmpfs as now it can work even if there is more mountpoints
+* Added networking support
+* Implemented network stack
+* Implemented DHCP for fetching ip address
+* Implemented driver for RTL8139
+* Implemented a loopback ethernet adapter
+* Implemented a logging system
+* Want to fix the AMD pcnet fast III driver
+* Implemented a interface to access io ports
+* Implemented essential devices such as null, zero, random etc...
+* Added a block device abstraction for IFB
+* Rewrote kernelfs to work better
+* Implemented the mount syscall to mount a filesystem
+* Updated newlib patch to add new definitions
+* Updated sorfs to enable writing on newly saved files
+* Implemented function to create new files in sorfs
+* Implemented ioctl
+* Updated the file open function to create the new file if necessary
+* Added function to dump contents of charbuffer to file
+* Implemented a network interface manager
+* Added new test program 'uname'
+* Updated kernel.c
+* Updated wallpaper
+* Added function to show images

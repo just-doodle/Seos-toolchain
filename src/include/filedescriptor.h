@@ -42,8 +42,14 @@ int fd_close(int file);
 int fd_read(int file, char* ptr, int len);
 int fd_write(int file, char* ptr, int len);
 int fd_lseek(int file, int ptr, int dir);
+int fd_ioctl(int file, int req, void* data);
 int fstat(int file, seos_stat_t* st);
 int fd_readdir(int fd, int index, fd_dirent* dirent);
+//uint32_t append_fd(pcb_t* process, FILE* f);
+
+int access(const char* file, int flags);
+uint32_t umask(uint32_t mask);
+int chmod(char* file, int mode);
 
 void list_descriptors();
 

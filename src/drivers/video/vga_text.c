@@ -98,7 +98,7 @@ void text_putc(char c)
     scroll();
     move_cursor();
 #else
-    vidtext_putchar(c);
+    term_putchar(c);
 #endif
 }
 
@@ -115,7 +115,7 @@ void text_clear()
     textmode.y = 0;
     move_cursor();
 #else
-    vidtext_clear();
+    term_clear();
 #endif
 }
 
@@ -123,8 +123,6 @@ void text_chcolor(uint8_t fg, uint8_t bg)
 {
     textmode.bg = bg;
     textmode.fg = fg;
-    vidtext_set_font_color(bioscolor_to_vesa(fg));
-    vidtext_set_background_color(bioscolor_to_vesa(bg));
 }
 
 uint8_t text_getBG()

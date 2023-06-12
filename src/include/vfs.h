@@ -35,6 +35,9 @@
 
 #define FS_TYPE_EXT2    0x83
 #define FS_TYPE_SORFS   0x84
+#define FS_TYPE_TMPFS   0x85
+#define FS_TYPE_DEVFS   0x86
+#define FS_TYPE_KERNELFS 0x87
 
 #define _IFMT 0170000   // type of file
 #define _IFDIR 0040000  // directory

@@ -229,6 +229,20 @@ int s_textclear(list_t* args)
     return 0;
 }
 
+
+int s_showimg(list_t* args)
+{
+    uint32_t argc = list_size(args);
+    if(argc < 2)
+    {
+        printf("usage: %s [file]\n", list_get_node_by_index(args, 0)->val);
+        return 1;
+    }
+    char* filename = list_pop(args)->val;
+    window_show_image(filename);
+    return 0;
+}
+
 int s_showbmp(list_t* args)
 {
     uint32_t argc = list_size(args);
@@ -283,13 +297,6 @@ int s_elf(list_t* args)
     return 0;
 }
 
-int s_return(list_t* args)
-{
-    change_keyboard_handler(process_kbh);
-    printf("Returned to program.\n");
-    return 0;
-}
-
 void getCMD(char* cmd, char* help, shellcmdf_t function)
 {
     memset(cmds[c_cmds].cmd, 0, 32);
@@ -297,6 +304,27 @@ void getCMD(char* cmd, char* help, shellcmdf_t function)
     strcpy(cmds[c_cmds].help, help);
     cmds[c_cmds].f = function;
     c_cmds++;
+}
+
+int s_cat(list_t* args)
+{
+    uint32_t argc = list_size(args);
+    if(argc < 2)
+    {
+        printf("usage: %s [file]\n", list_get_node_by_index(args, 0)->val);
+        return 1;
+    }
+
+    char* file_name = list_pop(args)->val;
+    FILE* f = file_open(file_name, 0);
+    if(f == NULL)
+        return 1;
+    uint32_t sz = vfs_getFileSize(f);
+    char* buf = zalloc(sz);
+    vfs_read(f, 0, sz, buf);
+    printf("%s");
+    free(buf);
+    return 0;
 }
 
 void init_shell()
@@ -333,6 +361,8 @@ void init_shell()
     getCMD("color", "Changes the text color. Only use decimal numbers.", s_chcolor);
     getCMD("loadelf", "Loads the given ELF file.", s_elf);
     getCMD("showbmp", "Shows the given bitmap image.", s_showbmp);
+    getCMD("showimg", "Shows the given image.", s_showimg);
+    getCMD("cat", "Prints the content of the file", s_cat);
 }
 
 void clear_buffer()

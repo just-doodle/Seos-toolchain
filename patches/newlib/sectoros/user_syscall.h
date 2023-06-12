@@ -1,7 +1,7 @@
 #ifndef __USER_SYSCALL_H__
 #define __USER_SYSCALL_H__
 
-#define MAX_SYSCALLS 31
+#define MAX_SYSCALLS 45
 
 #define SYSCODE_PUTC 0x00
 #define SYSCODE_EXIT 0x01
@@ -34,6 +34,20 @@
 #define SYSCODE_READDIR 0x1C
 #define SYSCODE_GETTIMEOFDAY 0x1D
 #define SYSCODE_SWAP_BUFFER 0x1E
+#define SYSCODE_GETCWD 0x1F
+#define SYSCODE_CHDIR 0x20
+#define SYSCODE_IOCTL 0x21
+#define SYSCODE_UMASK 0x22
+#define SYSCODE_ACCESS 0x23
+#define SYSCODE_UNAME 0x24
+#define SYSCODE_MOUNT 0x25
+#define SYSCODE_SETHOSTNAME 0x26
+#define SYSCODE_GETHOSTNAME 0x27
+#define SYSCODE_GETUID 0x28
+#define SYSCODE_SETUID 0x29
+#define SYSCODE_REBOOT 0x2A
+#define SYSCODE_CHMOD 0x2B
+#define SYSCODE_MKDIR 0x2C
 
 #define SYSCALL(ret, a, b, c, d) asm volatile("int $0x80": "=a"(ret) : "a"(a), "b"(b), "c"(c), "d"(d));
 #define SYSCALL2(a, b, c, d) asm volatile("int $0x80": : "a"(a), "b"(b), "c"(c), "d"(d));
@@ -44,6 +58,7 @@
 #define SYSCALL_ATTACH(handler)  SYSCALL2(SYSCODE_ATTACH, handler, 0, 0)
 #define SYSCALL_OPEN(filename, flags, mode, fd) SYSCALL(fd, SYSCODE_OPEN, filename, flags, mode)
 #define SYSCALL_CLOSE(fd, ret) SYSCALL(ret, SYSCODE_CLOSE, fd, 0, 0)
+#define SYSCALL_IOCTL(fd, ret, req, data) SYSCALL(ret, SYSCODE_IOCTL, fd, req, data)
 #define SYSCALL_READ(fd, ptr, len, ret) SYSCALL(ret, SYSCODE_READ, fd, ptr, len)
 #define SYSCALL_WRITE(fd, ptr, len, ret) SYSCALL(ret, SYSCODE_WRITE, fd, ptr, len)
 #define SYSCALL_LSEEK(fd, off, dir, ret) SYSCALL(ret, SYSCODE_LSEEK, fd, off, dir)
@@ -61,7 +76,7 @@
 #define SYSCALL_CHANGE_PROCESS(pid) SYSCALL2(SYSCODE_CHANGE_PROCESS, pid, 0, 0)
 #define SYSCALL_CLEAR SYSCALL2(SYSCODE_CLEAR, 0, 0, 0)
 #define SYSCALL_GET_ARGS(ret) SYSCALL(ret, SYSCODE_GET_ARGS, 0, 0, 0)
-#define SYSCALL_WINDOW_DISPLAY(window, fb) SYSCALL2(SYSCODE_COPY_FRAMEBUFFER, window, 0, 0)
+#define SYSCALL_WINDOW_DISPLAY(window, fb) SYSCALL2(SYSCODE_COPY_FRAMEBUFFER, window, fb, 0)
 #define SYSCALL_GET_TICKS(ret) SYSCALL(ret, SYSCODE_GET_TICKS, 0, 0, 0)
 #define SYSCALL_PIT_REGISTER(callback, seconds) SYSCALL2(SYSCODE_PIT_REGISTER, callback, seconds, 0)
 #define SYSCALL_SLEEP(ms) SYSCALL2(SYSCODE_SLEEP, ms, 0, 0)
@@ -70,5 +85,20 @@
 #define SYSCALL_GETTIMEOFDAY(tval, tzp) SYSCALL2(SYSCODE_GETTIMEOFDAY, tval, tzp, 0)
 #define SYSCALL_SWAP_BUFFER(win, buffer) SYSCALL2(SYSCODE_SWAP_BUFFER, win, buffer, 0)
 #define SYSCALL_UNLINK(file) SYSCALL2(SYSCODE_UNLINK, file, 0, 0)
+
+#define SYSCALL_GETCWD(ret) SYSCALL(ret, SYSCODE_GETCWD, 0, 0, 0)
+#define SYSCALL_CHDIR(dir) SYSCALL2(SYSCODE_CHDIR, dir, 0, 0)
+
+#define SYSCALL_UMASK(mask, ret) SYSCALL(ret, SYSCODE_UMASK, mask, 0, 0)
+#define SYSCALL_ACCESS(file, flags, ret) SYSCALL(ret, SYSCODE_ACCESS, file, flags, 0)
+#define SYSCALL_UNAME(structure) SYSCALL2(SYSCODE_UNAME, structure, 0, 0)
+#define SYSCALL_MOUNT(source, target, fstype, ret) SYSCALL(ret, SYSCODE_MOUNT, source, target, fstype)
+#define SYSCALL_SETHOSTNAME(ret, newhostname) SYSCALL(ret, SYSCODE_SETHOSTNAME, newhostname, 0, 0)
+#define SYSCALL_GETHOSTNAME(ret, hostname) SYSCALL(ret, SYSCODE_GETHOSTNAME, hostname, 0, 0)
+#define SYSCALL_GETUID(ret) SYSCALL(ret, SYSCODE_GETUID, 0, 0, 0)
+#define SYSCALL_SETUID(ret, uid) SYSCALL(ret, SYSCODE_SETUID, uid, 0, 0)
+#define SYSCALL_REBOOT(ret) SYSCALL(ret, SYSCODE_REBOOT, 0, 0, 0)
+#define SYSCALL_MKDIR(path, perm) SYSCALL2(SYSCODE_MKDIR, path, perm, 0)
+#define SYSCALL_CHMOD(ret, file, mode) SYSCALL(ret, SYSCODE_CHMOD, file, mode, 0)
 
 #endif /*__USER_SYSCALL_H__*/

@@ -1,4 +1,7 @@
 #include "draw.h"
+#include <limine_terminal/stb_image.h>
+#include "compositor.h"
+#include "vfs.h"
 
 uint32_t * screen = NULL;
 uint32_t fill_color;
@@ -12,6 +15,63 @@ int get_pixel_idx(canvas_t * canvas, int x, int y)
 void set_pixel(canvas_t * canvas, uint32_t val, int x, int y)
 {
     canvas->framebuffer[get_pixel_idx(canvas, x, y)] = val;
+}
+
+void draw_image(canvas_t* canvas, char* img)
+{
+    if((validate(canvas) != 1) || (validate(img) != 1))
+        return;
+
+    FILE* f = file_open(img, 0);
+    uint32_t sz = vfs_getFileSize(f);
+    uint8_t *buf = zalloc(sz);
+    vfs_read(f, 0, sz, buf);
+
+    uint32_t w;
+    uint32_t h;
+    uint32_t bpp;
+
+    uint32_t* img_buf = stbi_load_from_memory(buf, sz, &w, &h, &bpp, STBI_default);
+
+    for(register uint32_t y = 0; y < h; y++)
+        for(register uint32_t x = 0; x < w; x++)
+            set_pixel(canvas, img_buf[x+y*w], x, y);
+
+    free(buf);
+    free(img);
+}
+
+void window_show_image(char* file)
+{
+
+    if((validate(file) != 1))
+        return;
+
+    FILE* f = file_open(file, 0);
+    uint32_t sz = vfs_getFileSize(f);
+    uint8_t *buf = zalloc(sz);
+    vfs_read(f, 0, sz, buf);
+
+    uint32_t w;
+    uint32_t h;
+    uint32_t bpp;
+
+    uint32_t* img = stbi_load_from_memory(buf, sz, &w, &h, &bpp, STBI_rgb_alpha);
+
+    uint32_t *pptr = (void *)img;
+    for (int i = 0; i < w * h; i++)
+        pptr[i] = (pptr[i] & 0x0000ff00) | ((pptr[i] & 0x00ff0000) >> 16) | ((pptr[i] & 0x000000ff) << 16);
+
+
+    window_t* win = create_window(file, w, h, 32, 32);
+    canvas_t c = canvas_create(win->width, win->height, win->region.region);
+
+    for(register uint32_t y = 0; y < h; y++)
+        for(register uint32_t x = 0; x < w; x++)
+            set_pixel(&c, img[x+y*w], x, y);
+
+    free(buf);
+    free(img);
 }
 
 void set_fill_color(uint32_t color)

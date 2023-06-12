@@ -47,6 +47,7 @@ void exception_handler(registers_t cps)
 {
     if(cps.ino < 32)
     {
+        printf("\033[31m");
 #if __ENABLE_DEBUG_SYMBOL_LOADING__
         if(current_process != NULL)
         {
@@ -78,12 +79,6 @@ void exception_handler(registers_t cps)
 #endif
 
 
-        vidtext_clear();
-        vidtext_update();
-        vidtext_draw();
-        compositor_background_fill();
-        window_drawall();
-        ifb_refresh();
         if(isLessMSG)
         {
             text_chcolor(VGA_RED, VGA_BLACK);
@@ -113,13 +108,11 @@ void exception_handler(registers_t cps)
             printf("EBP = 0x%06x\n", cps.ebp);
             stack_trace(100);
             serialprintf("%s\n", exception_messages[cps.ino]);
-            vidtext_update();
-            vidtext_draw();
             compositor_background_fill();
             window_drawall();
             ifb_refresh();
-            //text_chcolor(VGA_WHITE, VGA_BLACK);
         }
+        printf("\033[m");
     }
 
 exce_exit:

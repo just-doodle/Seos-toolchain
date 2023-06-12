@@ -29,6 +29,8 @@
 #define TASK_TYPE_USER   0
 #define TASK_TYPE_KERNEL 1
 
+#define USER_ID_ROOT 0
+
 /*
 * Process manager
 * Uses cooperative multitasking.
@@ -81,7 +83,13 @@ typedef struct process_control_block
 
     uint32_t ticks_since_boot;
 
+    uint32_t umask;
+    uint32_t uid;
+
     int execve_return;
+
+    char* cwd;
+    int cwdlen;
 
     process_kbhandler_t handler;
 
@@ -94,6 +102,7 @@ typedef struct process_control_block
 extern list_t* process_list;
 extern pcb_t* current_process;
 extern registers_t saved_context;
+extern char p__cwd[512];
 
 void init_processManager();
 
@@ -105,6 +114,9 @@ int kill(pid_t pid, uint32_t sig);
 pid_t alloc_pid();
 void create_process_from_routine(char* name, void* entrypoint, uint32_t type);
 void create_process(char* filename);
+
+void getcwd(char* buf, uint32_t sz);
+int chdir(char* path);
 
 // ENV does not work
 void execve(char* name, char** argv, char** env);
@@ -121,5 +133,8 @@ void kernel_regs_switch(context_t * regs2);
 
 void process_kbh(uint8_t scancode);
 void attach_handler(process_kbhandler_t handler);
+
+uint32_t getuid();
+int setuid(uint32_t new_uid);
 
 #endif /*__PROCESS_H__*/

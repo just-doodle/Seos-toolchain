@@ -14,7 +14,7 @@ Kernel Version
 
 
 ## 🧱 Kernel
-The current kernel version for SectorOS-RW4 is v6.23.05.1NR.<br>
+The current kernel version for SectorOS-RW4 is v6.23.06.1NR.<br>
 
 ## Screenshots
 <img src="./assets/Screenshot_01.png"></img>
@@ -51,6 +51,18 @@ SectorOS-RW4 is an open-source project, and contributions are welcome. To contri
 1. Fork the project repository.
 2. Make your changes and commit them to your forked repository.
 3. Submit a pull request to the main project repository.
+
+## Resources
+
+The resources used in this project are:
+
+* [osdev wiki](https://wiki.osdev.org)
+* [osdev forums](https://forum.osdev.org)
+* [JamesM's kernel development tutorials](http://www.jamesmolloy.co.uk/tutorial_html/)
+* [szhou42/osdev](https://github.com/szhou42/osdev)
+* [klange/toaruos](https://github.com/klange/toaruos)
+* [SectorOS-RE2](https://github.com/arun007coder/SectorOS-RE2)
+* [Limine terminal](https://github.com/ilobilo/limine-terminal)
 
 ## 🛡️ License
 

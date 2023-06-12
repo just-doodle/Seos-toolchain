@@ -4,7 +4,6 @@
 
 static keyboard_handler_t khandler = NULL;
 static keyboard_handler_t khandler2 = stdin_keybuff;
-static keyboard_handler_t khandler3 = process_kbh;
 
 static int use_khandler = 1;
 
@@ -64,14 +63,11 @@ void keyboard_callback(registers_t *reg)
         scancode = inb(KEYBOARD_DATA_PORT);
         break;
     }
-
-    khandler3(scancode);
     if(khandler != NULL)
     {
         if(use_khandler == 1)
             khandler(scancode);
-        if(khandler2 != NULL)
-            khandler2(scancode);
+        stdin_keybuff(scancode);
     }
     else
     {

@@ -1,5 +1,6 @@
 #include "devfs.h"
-
+#include "mount.h"
+#include "logdisk.h"
 
 FILE* root_node;
 FILE nodes[MAX_DEVICES];
@@ -42,11 +43,21 @@ void init_devfs()
     root_node = devfs_getrootnode();
     if(root_node == NULL)
     {
-        printf("Could not create root node\n");
+        ldprintf("devfs", LOG_ERR, "Could not create root node");
         return;
     }
 
+    if(mount_list != NULL)
+    {
+        mount_info_t* m = ZALLOC_TYPES(mount_info_t);
+        m->device = "devmgr";
+        m->mountpoint = "/dev/";
+        m->fs_type = FS_TYPE_DEVFS;
+        list_push(mount_list, m);
+    }
+
     vfs_mountDev("/dev/", root_node);
+    ldprintf("devfs", LOG_INFO, "devfs is successfully initialized and mounted to /dev/");
 }
 
 void devfs_add(FILE* node)
