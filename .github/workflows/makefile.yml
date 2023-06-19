@@ -16,7 +16,8 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Install prereqs
-      run: sudo apt update |
+      run:  |
+        sudo apt update
         sudo apt upgrade
         sudo apt install grub-pc-bin nasm mtools qemu-utils xorriso
       shell: bash
