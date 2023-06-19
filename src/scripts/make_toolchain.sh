@@ -75,6 +75,7 @@ function download_i686_elf
     if ls "$TESTDIR/I686_ELF_TOOLS" 1> /dev/null 2>&1; then
         echo "I686_elf toolchain is already built. To reinstall, remove $TESTDIR/I686_ELF_TOOLS"
     else
+        mkdir -p "$SYSROOT/src/build-i686-elf/"
         wget https://github.com/lordmilko/i686-elf-tools/releases/download/7.1.0/i686-elf-tools-linux.zip  -O "$I686_ELF_TOOLCHAIN_ZIP"
         touch "$TESTDIR/I686_ELF_TOOLS"
         extract_i686_elf
