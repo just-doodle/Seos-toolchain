@@ -19,9 +19,11 @@ int stdio_ioctl(FILE* f, int request, void *data)
 		case TIOCSWINSZ:
 			return -1;
 		case TIOCGWINSZ:
+        {
             struct winsize w = get_winsize();
 			memcpy(data, &w, sizeof(struct winsize));
 			return 0;
+        }break;
 		default:
 			return -1;
 	}
