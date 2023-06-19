@@ -1,0 +1,46 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Create toolchain
+      run: ./src/scripts/make_toolchain.sh --parallel_build -s ~/sysroot
+      shell: bash
+
+    - name: Compile kernel
+      run: make kernel
+
+    - name: Create ISO
+      run: make iso
+      
+    - name: Create hdfile
+      run: make sorhd
+      
+    - name: Upload compiled toolchain
+      uses: actions/upload-artifact@v2
+      with: 
+        name: sectoros_toolchain
+        path: ~/sysroot
+
+    - name: Upload kernel
+      uses: actions/upload-artifact@v2
+      with: 
+        name: kernel
+        path: SectorOS-RW4.elf
+
+    - name: Upload ISO
+      uses: actions/upload-artifact@v2
+      with: 
+        name: iso
+        path: SectorOS-RW4.iso
