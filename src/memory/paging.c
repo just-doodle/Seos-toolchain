@@ -1,5 +1,7 @@
 #include "paging.h"
 #include "kheap.h"
+#include "debug.h"
+#include "elf_loader.h"
 
 extern void * heap_start, * heap_end, * heap_max, * heap_curr;
 extern bool kheap_enabled;
@@ -330,10 +332,17 @@ void page_fault_handler(registers_t* regs)
     if(inst_fetch) serialprintf("Instruction fetch ");
     serialprintf("]\n");
 
+    symoff_t vsym = get_symbol(faulting_vaddr);
+
     printf("Faulting address: 0x%x\n", faulting_addr);
-    printf("Faulting virtual address: 0x%x\n", faulting_vaddr);
+    printf("Faulting virtual address: 0x%x : {%s+0x%x}\n", faulting_vaddr, vsym.name, vsym.offset);
 
     serialprintf("Faulting address: 0x%x\n", faulting_addr);
-    serialprintf("Faulting virtual address: 0x%x\n", faulting_vaddr);
+    serialprintf("Faulting virtual address: 0x%x : {%s+0x%x}\n", faulting_vaddr, vsym.name, vsym.offset);
+
+    int sz = get_allocated_size();
+    int max = get_heap_size();
+    serialprintf("[KHEAP] Heap used: %dMB/%dMB\n", sz/MB, max/MB);
+    printf("[KHEAP] Heap used: %dMB/%dMB\n", sz/MB, max/MB);
     kernel_panic("Page fault");
 }

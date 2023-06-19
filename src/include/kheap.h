@@ -9,8 +9,8 @@
 #include "debug.h"
 
 #define KHEAP_START (void*)0xC0400000
-#define KHEAP_INITIAL_SIZE 48 * MB
 #define KHEAP_MAX_ADDRESS (void*)0xCFFFFFFF
+#define KHEAP_INITIAL_SIZE (KHEAP_MAX_ADDRESS-KHEAP_START)
 #define HEAP_MIN_SIZE 4 * MB
 
 #define PAGE_SIZE 4096

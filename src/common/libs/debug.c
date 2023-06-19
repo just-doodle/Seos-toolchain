@@ -2,6 +2,11 @@
 #include "elf_loader.h"
 #include "process.h"
 #include "logdisk.h"
+#include "mount.h"
+#include "kernelfs.h"
+
+symbol_t* kernel_symbols = NULL;
+uint32_t n_kernel_symbols = 0;
 
 void kernel_atCrash()
 {
@@ -84,8 +89,107 @@ symoff_t get_symbol(uint32_t addr)
         }
     }
 
-	return (symoff_t){"????", 0};
+    if(kernel_symbols != NULL)
+    {
+        for(int i = 0; i < n_kernel_symbols; i++)
+        {
+            sym = &(kernel_symbols[i]);
+            uint32_t offset = get_offset(addr, sym);
+            if(offset)
+                return (symoff_t){sym->name, offset};
+        }
+    }
 
+    list_t* module_symbols = get_symbol_list_from_last_module();
+    foreach(symbol_node, module_symbols)
+    {
+        sym = symbol_node->val;
+        uint32_t offset = get_offset(addr, sym);
+        if(offset)
+            return (symoff_t){sym->name, offset};
+    }
+
+	return (symoff_t){"????", 0};
+}
+
+void load_kernel_symbols(multiboot_info_t* info)
+{
+    uint32_t shndx = info->u.elf_sec.shndx;
+    uint32_t num = info->u.elf_sec.num;
+    uint32_t size = info->u.elf_sec.size;
+    uint8_t* shdr_buf = info->u.elf_sec.addr;
+
+    alloc_region(kernel_page_dir, shdr_buf, shdr_buf + (num*size), 1, 1, 1);
+
+    elf_section_header_t* shdr = (elf_section_header_t*)info->u.elf_sec.addr;
+
+    uint32_t sym_num = 0;
+    elf_sym_t* symtab = NULL;
+
+    char* strtab = NULL;
+
+    for(uint32_t i = 0; i < num; i++)
+    {
+        if(shdr[i].sh_type == SHT_SYMTAB)
+        {
+            symtab = shdr[i].sh_addr;
+            alloc_region(kernel_page_dir, symtab, symtab + shdr[i].sh_size, 1, 1, 1);
+            sym_num = (shdr[i].sh_size / sizeof(elf_sym_t));
+            strtab = shdr[shdr[i].sh_link].sh_addr;
+            alloc_region(kernel_page_dir, strtab, strtab + shdr[shdr[i].sh_link].sh_size, 1, 1, 1);
+        }
+    }
+
+    // ASSERT(symtab == NULL && "Kernel symbols not loaded");
+
+    uint32_t func_num = 0;
+
+    for(uint32_t i = 0; i < sym_num; i++)
+    {
+        if(symtab[i].st_info & STT_FUNC)
+        {
+            func_num++;
+        }
+    }
+
+    kernel_symbols = zalloc(sizeof(symbol_t) * func_num);
+
+    uint32_t j = 0;
+
+    for(uint32_t i = 0; i < func_num; i++)
+    {
+        if(symtab[i].st_info & STT_FUNC)
+        {
+            kernel_symbols[j].addr = symtab[i].st_value;
+            kernel_symbols[j].size = symtab[i].st_size;
+            kernel_symbols[j].name = strdup(&strtab[symtab[i].st_name]);
+            //serialprintf("%s: 0x%x %dB\n", kernel_symbols[j].name, kernel_symbols[j].addr, kernel_symbols[j].size);
+            j++;
+        }
+        // else if(symtab[i].st_info & STT_OBJECT)
+        // {
+        //     kernelfs_add_variable("/proc/ksyms", strdup(&strtab[symtab[i].st_name]), symtab[i].st_value, symtab[i].st_size);
+        // }
+    }
+
+    n_kernel_symbols = j;
+}
+
+symbol_t* get_kernel_symbol_by_name(char* name)
+{
+    if(kernel_symbols == NULL)
+        return NULL;
+
+    for(int i = 0; i < n_kernel_symbols; i++)
+    {
+        symbol_t* sym = &(kernel_symbols[i]);
+        if(strcmp(name, sym->name) == 0)
+        {
+            return sym;
+        }
+    }
+    
+    return NULL;
 }
 
 void backtrace()

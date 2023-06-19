@@ -18,7 +18,9 @@ typedef struct ifb_block
     uint32_t fb_addr;
     uint32_t fb_size;
 
-    char *buffer;
+    uint32_t* fb_ptr;
+
+    uint32_t *buffer;
     uint32_t size;
     uint32_t bpp;
 }ifb_block_t;

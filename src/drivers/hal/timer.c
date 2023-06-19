@@ -7,6 +7,8 @@ list_t* wakeup_list;
 
 timer_interface_t* current_timer_interface = NULL;
 
+int isSleeping = 0;
+
 long internal_ticks_seconds = 0;
 long internal_ticks_mseconds = 0;
 long internal_ticks;
@@ -35,7 +37,7 @@ void init_timer_interface()
     asm("divl %%ebx" : "=a"(internal_counter02) : "a"(current_timer_interface->frequency), "b"(1000), "d"(0));
     timeofday = gettimeofday_internal() + timezone_sec;
     rtc_read(NULL, NULL, NULL, NULL, &month, &year);
-    kernelfs_add_variable("ticksinceboot", &internal_ticks_mseconds, sizeof(long));
+    kernelfs_add_variable("/proc", "ticksinceboot", &internal_ticks_mseconds, sizeof(long));
 }
 
 void timer_interface_call()
@@ -59,7 +61,8 @@ void timer_interface_call()
         {
             asm("divl %%ebx" : "=a"(internal_counter02) : "a"(current_timer_interface->frequency), "b"(1000), "d"(0));
             asm("incl %0" : "+r"(internal_ticks_mseconds));
-            asm("incl %0" : "+r"(current_process->ticks_since_boot));
+            if((current_process) && !isSleeping)
+                asm("incl %0" : "+r"(current_process->ticks_since_boot));
         }
 
         if(internal_counter01 == 0)
@@ -77,10 +80,13 @@ void timer_interface_call()
 void sleep(uint32_t ms)
 {
     uint32_t ticks = internal_ticks_mseconds + ms;
+    asm("sti");
+    isSleeping = 1;
     while(internal_ticks_mseconds < ticks)
     {
-        asm("hlt");
+        asm("pause");
     }
+    isSleeping = 0;
 }
 
 uint32_t get_frequency()

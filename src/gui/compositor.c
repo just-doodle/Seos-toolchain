@@ -18,11 +18,14 @@ targa_t* wallpaper_t;
 bitmap_t* wallpaper_b;
 
 int wallpaper_type = 0;
+int notify_timer = 0;
 
 rect_region_t wallpaper;
 
 rect_region_t statusbar;
 rect_region_t notify;
+
+list_t* notify_messages = NULL;
 
 wid_t curr_wid = 0;
 
@@ -102,7 +105,11 @@ void window_draw(window_t* win)
         draw_rect_pixels(&screen_canvas, &(win->region));
     }
     if(win->bar.region != NULL)
+    {
+        canvas_t wbar = canvas_create(win->bar.r.width, win->bar.r.height, win->bar.region);
+        round_corner_effect(&wbar);
         draw_rect_pixels(&screen_canvas, &win->bar);
+    }
     draw_rect_pixels(&screen_canvas, &statusbar);
 }
 
@@ -138,16 +145,19 @@ void window_drawall()
 void compositor_background_fill()
 {
     set_fill_color(background_color);
-    draw_rect(&screen_canvas, 0, 0, mode->XResolution, mode->YResolution);
+    draw_rect(&screen_canvas, 0, 0, screen_canvas.width, screen_canvas.height);
     if(wallpaper_type != 0)
         draw_rect_pixels(&screen_canvas, &wallpaper);
 }
 
 int q = 0;
 
+
 void win_timer()
 {
     t++;
+
+#if __COMPOSITOR_LOW_END__
     q++;
 
     if(q == 100)
@@ -155,11 +165,32 @@ void win_timer()
         show_time();
         q = 0;
     }
+#endif
 
 
     if(t == 40)
     {
         window_drawall();
+#if __COMPOSITOR_LOW_END__
+        if(notify_timer != 0)
+        {
+            draw_rect_pixels(&screen_canvas, &notify);
+            notify_timer--;
+            if(notify_timer == 0)
+            {
+                set_fill_color(rgb(200, 109, 173));
+                canvas_t ct = canvas_create(notify.r.width, 100, notify.region);
+                draw_rect(&ct, 0, 0, ct.width, ct.height);
+                compositor_background_fill();
+                if((notify_messages != NULL) && list_size(notify_messages) != 0)
+                {
+                    listnode_t* ln = list_pop(notify_messages);
+                    compositor_message_show(ln->val);
+                    free(ln->val);
+                }
+            }
+        }
+#endif
         t = 0;
     }
 }
@@ -188,19 +219,35 @@ void window_move(window_t* win, uint32_t x, uint32_t y)
 
 void window_focus(window_t* w)
 {
-    //serialprintf("[COMPOSITOR] Focused window \"%s\"\n", w->title);
+    serialprintf("[COMPOSITOR] Focused window \"%s\"\n", w->title);
     if(w->isMinimized == false)
         focused_window = w;
     else
         maximize(w);
 
     if(w->process != __UINT32_MAX__)
-        change_process(w->process);
+        if(current_process && (w->process == current_process->pid))
+            return;
+        else
+            change_process(w->process);
 }
 
 void compositor_message_show(char* msg)
 {
-    //TODO
+    if(notify_timer != 0)
+    {
+        if(notify_messages != NULL)
+        {
+            char* bu = strdup(msg);
+            list_push(notify_messages, bu);
+            return;
+        }
+    }
+    set_fill_color(rgb(200, 109, 173));
+    canvas_t ct = canvas_create(notify.r.width, 100, notify.region);
+    draw_rect(&ct, 0, 0, ct.width, ct.height);
+    draw_text(&ct, msg, 0, 0);
+    notify_timer = 70;
 }
 
 void init_compositor()
@@ -208,6 +255,7 @@ void init_compositor()
     mode = vesa_get_current_mode();
 
     window_list = list_create();
+    notify_messages = list_create();
     screen_canvas = canvas_create(mode->XResolution, mode->YResolution, ifb_getIFB());
 
     set_fill_color(rgb(254, 128, 20));
@@ -218,6 +266,9 @@ void init_compositor()
 
     wallpaper.r = rect_create(0, 16, mode->XResolution, mode->YResolution-16);
     wallpaper.region = zalloc((mode->pitch)*mode->YResolution);
+
+    notify.r = rect_create(mode->XResolution-(33*8), statusbar.r.height+2, (32*8), 100);
+    notify.region = zalloc((notify.r.width*32)*notify.r.height);
 
     update_statusbar("Hello, This is a test build on SEGUI.", 0, 0, 0xFFaaffff);
 
@@ -346,6 +397,25 @@ void window_change_title(window_t* w, char* title)
     draw_text(&c, w->title, 1, 0);
 }
 
+void compositor_change_res(uint32_t width, uint32_t height, uint32_t bpp)
+{
+    screen_canvas = canvas_create(width, height, ifb_getIFB());
+    set_fill_color(rgb(254, 128, 20));
+    draw_rect(&screen_canvas, 0, 0, width, height);
+
+    statusbar.r = rect_create(0, 0, width, 16);
+    statusbar.region = realloc(statusbar.region, (width * 32)*16);
+
+    wallpaper.r = rect_create(0, 16, width, height-16);
+    wallpaper.region = realloc(wallpaper.region, (width*bpp)*height);
+
+    notify.r = rect_create(width-(33*8), statusbar.r.height+2, (32*8), 100);
+    notify.region = realloc(notify.region, (notify.r.width*32)*notify.r.height);
+
+    compositor_background_fill();
+    //window_drawall();
+}
+
 window_t* get_window(uint32_t x, uint32_t y)
 {
     register listnode_t* l = NULL;
@@ -421,4 +491,26 @@ void minimize(window_t* w)
         window_drawall();
         asm("sti");
     }
+}
+
+int win_nn = 0;
+
+void compositor_focus_next()
+{
+    win_nn++;
+    if(list_size(window_list) < win_nn)
+        win_nn = list_size(window_list);
+
+    if(list_get_node_by_index(window_list, win_nn) != NULL)
+        window_focus(list_get_node_by_index(window_list, win_nn)->val);
+}
+
+void compositor_focus_previous()
+{
+    win_nn--;
+    if(win_nn < 0)
+        win_nn = 0;
+
+    if(list_get_node_by_index(window_list, win_nn) != NULL)
+        window_focus(list_get_node_by_index(window_list, win_nn)->val);
 }

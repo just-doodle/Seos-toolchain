@@ -43,6 +43,9 @@
 #include "tcp.h"
 #include "dhcp.h"
 
+#include "modules.h"
+
+
 #define MOTD_NUM 3
 
 void print_motd(int idx)
@@ -86,6 +89,7 @@ void rand_motd()
 }
 
 char* mount_filesystems = "nodev	tmpfs\n        sorfs\n";
+char* compiler = KERNEL_COMPILER;
 
 list_t* mboot_cmd;
 
@@ -110,6 +114,33 @@ int tcp_sample(TCPSocket_t* self, uint8_t* data, uint16_t len)
     }
     return 1;
 }
+
+static char* mmap_get_type_str(uint32_t type)
+{
+    switch(type)
+    {
+    case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE:
+        return "ACPI reclaimable memory (3)";
+        break;
+    case MULTIBOOT_MEMORY_AVAILABLE:
+        return "Free memory (1)";
+        break;
+    case MULTIBOOT_MEMORY_RESERVED:
+        return "Reserved memory (2)";
+        break;
+    case MULTIBOOT_MEMORY_NVS:
+        return "ACPI non volatile memory (4)";
+        break;
+    case MULTIBOOT_MEMORY_BADRAM:
+        return "Bad memory region (5)";
+        break;
+    default:
+        return "Reserved memory (2)";
+        break;
+    };
+}
+
+char* version_file = KERNEL_NAME" "KERNEL_VERSION" "KERNEL_VERSION_CODENAME" (Enabled options: "KERNEL_ENABLED_OPTIONS") "KERNEL_BUILD_DATE" "KERNEL_BUILD_TIME;
 
 void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 {
@@ -161,10 +192,36 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         }
     }
 
+    alloc_region(kernel_page_dir, info->boot_device, info->boot_device+64, 1, 1, 0);
+
     init_mount();
     init_kernelfs("/proc");
-    kernelfs_add_variable("filesystems", mount_filesystems, strlen(mount_filesystems));
+    init_kernelfs("/proc/ksyms");
+    kernelfs_add_variable("/proc", "filesystems", mount_filesystems, strlen(mount_filesystems));
+    kernelfs_add_variable("/proc", "compiler", compiler, strlen(compiler));
+    kernelfs_add_variable("/proc", "cmdline", info->cmdline, strlen(((char*)info->cmdline)));
+    kernelfs_add_variable("/proc", "loader", info->boot_loader_name, strlen(((char*)info->boot_loader_name)));
+    kernelfs_add_variable("/proc", "version", version_file, strlen(((char*)version_file)));
     syscall_mount(NULL, "/tmp", "tmpfs", 0, NULL);
+
+    alloc_region(kernel_page_dir, info->mmap_addr, info->mmap_addr + info->mmap_length, 1, 1, 1);
+    if(info->flags & MULTIBOOT_INFO_MEM_MAP)
+    {
+        static char* mmap_type[6] = {
+            "Unknown memory",
+            "Free memory",
+            "Reserved memory",
+            "ACPI reclaimable memory",
+            "Non volatile memory",
+            "Bad memory",
+        };
+        multiboot_memory_map_t* mmap = info->mmap_addr;
+        for(uint32_t i = 0; i < (info->mmap_length/sizeof(multiboot_memory_map_t)); i++)
+        {
+            char* tp = mmap_get_type_str(mmap[i].type);
+            serialprintf("[MMAP] 0x%08x | 0x%08x | %s (%d)\n", mmap[i].addr, mmap[i].len, mmap_type[mmap[i].type], mmap[i].type);
+        }
+    }
 
     init_portDev();
     init_nulldev();
@@ -200,7 +257,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     init_keyboard();
 
     init_pci();
-    
+
     init_ata_pio();
     init_stdout();
 
@@ -247,6 +304,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     printtime();
 
     compositor_load_wallpaper("/wallpaper.bmp", 2);
+    init_vbox();
     init_shell();
 
     print_mountList();
@@ -305,6 +363,28 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         tcp_bind(s, tcp_sample);
     }
 
+    #if __ENABLE_DEBUG_SYMBOL_LOADING__
+    compositor_message_show("Warning:\nENABLE_DEBUG_SYMBOL_LOADING is enabled. This can impact performance when loading executables.");
+    #endif
+
+    load_kernel_symbols(info);
+
+    symbol_t* s = get_kernel_symbol_by_name("kernelmain");
+    if(s != NULL)
+    {
+        serialprintf("%s: 0x%x, %dB\n", s->name, s->addr, s->size);
+    }
+
     printf("\nSectorOS shell v2.0.0\nRun help to get the list of commands.\n#/> ");
+
+    if((list_contain_str(mboot_cmd, "--load_modules")) != -1)
+    {
+        char** av = zalloc(sizeof(uint32_t)*2);
+        av[0] = "/test.ko";
+        av[1] = NULL;
+
+        load_module(av);
+    }
+
     while(1);
 }

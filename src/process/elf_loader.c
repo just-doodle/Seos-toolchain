@@ -1,7 +1,7 @@
 #include "elf_loader.h"
 #include "process.h"
 #include "rdtsc.h"
-
+#include "logdisk.h"
 
 int valid_elf(elf_header_t * elf_head)
 {

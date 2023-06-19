@@ -220,3 +220,19 @@
 * Updated kernel.c
 * Updated wallpaper
 * Added function to show images
+
+19-06-2023: 03:28 PM IST v6.23.06.2NR
+* Added read only ext2 support
+* Implemented function to load kernel symbols from memory
+* Reimplemented function to lookup symbols
+* Added partial support for vbox guest additions
+* Updated kernelfs to make it multi mountable
+* Added scripts to create a disk image and to extract files from vdi files
+* Implemented a buggy module loader which does not work at all
+* Updated the logging system
+* Added a function to save framebuffer to a file
+* Increased the kernel heap from 50MB to 251MB
+* Updated the sleep routine
+* Added entries to mount syscall
+* Implemented a function to show message in compositor
+* Added function to access memory mapped IO

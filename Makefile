@@ -1,4 +1,5 @@
 TOOLDIR=~/sysroot/bin/
+PREFIX=$(TOOLDIR)
 SRCDIR=src/
 INCLUDEDIR=$(SRCDIR)/include/
 BACKUPDIR=$(SRCDIR)/../../BACKUP/
@@ -8,8 +9,9 @@ FILESDIR=files
 
 OSTOOL_DIR=~/sysroot/usr/bin/
 
-CC=$(TOOLDIR)/i686-elf-gcc
-CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -g -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=0
+CC=i686-elf-gcc
+CCVERSION = $(shell echo $(CC) $(shell $(PREFIX)$(CC) --version | grep $(CC) | sed 's/^.* //g'))
+CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -DKERNEL_COMPILER="\"$(CCVERSION)\"" -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -ggdb -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=1 -D__COMPOSITOR_LOW_END__=1
 
 CXX=$(TOOLDIR)/i686-elf-g++
 CXXFLAGS=
@@ -29,9 +31,9 @@ OBJDUMP = i686-elf-objdump
 
 OBJCOPYFLAGS = --strip-debug --strip-unneeded
 
-QEMU=sudo qemu-system-i386
-QEMUFLAGS=-cdrom $(ISOFILE) -m 3098M -boot d -hda sorhd -serial stdio
-QEMUDFLAGS= -s -S -daemonize -m 64M
+QEMU=qemu-system-i386
+QEMUFLAGS=-cdrom $(ISOFILE) -m 4096M -boot d -hda sorhd
+QEMUDFLAGS= -s -S -serial file:k.log -daemonize -m 512M
 
 PROJECT=SectorOS-RW4
 
@@ -61,6 +63,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/storage/atapio.o \
 			$(SRCDIR)/drivers/storage/mbr.o \
 			$(SRCDIR)/drivers/storage/ramdisk.o \
+			$(SRCDIR)/drivers/vminterface/vboxguest.o \
 			$(SRCDIR)/interrupts/interrupt.o \
 			$(SRCDIR)/interrupts/interrupt_helper.o \
 			$(SRCDIR)/interrupts/exception.o \
@@ -77,6 +80,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/common/libs/fast_memcpy.o \
 			$(SRCDIR)/common/libs/charbuffer.o \
 			$(SRCDIR)/fs/vfs.o \
+			$(SRCDIR)/fs/ext2.o \
 			$(SRCDIR)/fs/devfs.o \
 			$(SRCDIR)/fs/mount.o \
 			$(SRCDIR)/fs/sorfs.o \
@@ -100,6 +104,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/storage/nulldev.o \
 			$(SRCDIR)/drivers/storage/logdisk.o \
 			$(SRCDIR)/drivers/io/portdev.o \
+			$(SRCDIR)/drivers/io/mmio.o \
 			$(SRCDIR)/drivers/time/rtc.o \
 			$(SRCDIR)/drivers/input/keyboard.o \
 			$(SRCDIR)/drivers/ethernet/rtl8139.o \
@@ -118,6 +123,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/limine-terminal/image.o \
 			$(SRCDIR)/limine-terminal/term.o \
 			$(SRCDIR)/memory/kheap.o \
+			$(SRCDIR)/gui/stb_image_write.o \
 			$(SRCDIR)/memory/paging.o \
 			$(SRCDIR)/memory/pmm.o \
 			$(SRCDIR)/process/usermode.o \
@@ -127,12 +133,16 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/process/elf_loader.o \
 			$(SRCDIR)/process/filedescriptor.o \
 			$(SRCDIR)/kernel/shell.o \
+			$(SRCDIR)/kernel/modules.o \
 			$(SRCDIR)/kernel/kernel.o
 
 all: kernel iso
 
 kernel: $(EXECUTABLE)
 iso: $(ISOFILE)
+
+echocc:
+	@echo $(CCVERSION)
 
 $(EXECUTABLE): $(OBJECTS)
 	@echo '[LD] $@'
@@ -150,7 +160,7 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 	@echo 'set root=(cd)' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "$(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0' --loglevel 5 --network_enable_loopback >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 2' >> $(PROJECT)/boot/grub/grub.cfg
 	@#echo 'module /boot/sorhd' >> $(PROJECT)/boot/grub/grub.cfg
 	@#echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
@@ -161,7 +171,7 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 
 %.o : %.c
 	@echo '[CC] $@'
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	@$(PREFIX)/$(CC) $(CFLAGS) -c -o $@ $<
 
 %.o : %.s
 	@echo '[GAS] $@'
@@ -180,7 +190,7 @@ $(IMAGEFILE): sorfs_compile create_test_program
 	./sorfs -c $@ $(wildcard $(FILESDIR)/*)
 
 run: $(ISOFILE)
-	$(QEMU) $(QEMUFLAGS) -enable-kvm -cpu host | tee k.log
+	$(QEMU) $(QEMUFLAGS) -enable-kvm -cpu host -serial stdio | tee k.log
 
 rund: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS)
@@ -235,9 +245,12 @@ stopTAP1:
 	@sudo ifconfig $(NETWORK_INTERFACE) up
 	@sudo dhclient -v $(NETWORK_INTERFACE)
 
+modules:
+	$(CC) -c -g -pedantic -ffreestanding -static -I$(INCLUDEDIR) $(SRCDIR)/modules/test.c -o files/test.ko 
+
 runnet: $(ISOFILE) setupTAP
-	sudo $(QEMU) $(QEMUFLAGS) -accel kvm -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device rtl8139,netdev=mynet0,mac=52:55:00:d1:55:01 | tee k.log
+	sudo $(QEMU) $(QEMUFLAGS) -accel kvm -serial stdio -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device rtl8139,netdev=mynet0,mac=52:55:00:d1:55:01 | tee k.log
 	make stopTAP
 
 runnet2: $(ISOFILE)
-	sudo $(QEMU) $(QEMUFLAGS) -accel kvm -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device rtl8139,netdev=mynet0,mac=52:55:00:d1:55:01 | tee k.log
+	sudo $(QEMU) $(QEMUFLAGS) -accel kvm -serial stdio -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device rtl8139,netdev=mynet0,mac=52:55:00:d1:55:01 | tee k.log

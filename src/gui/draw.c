@@ -143,22 +143,19 @@ void draw_rect_pixels(canvas_t * canvas, rect_region_t * rect_region)
     }
 }
 
-uint32_t* brga_to_argb(uint32_t* src, uint32_t* dest, uint32_t width, uint32_t height)
+uint32_t* argb_to_brga(uint32_t* src, uint32_t width, uint32_t height)
 {
     for(register int y = 0; y < height; y++)
     {
         for(register int x = 0; x < width; x++)
         {
-            register uint8_t* brga = &(src[width * y + x]);
-            register uint8_t* argb = &(dest[width * y + x]);
-            argb[0] = 0xff;
-            argb[1] = brga[1];
-            argb[2] = brga[2];
-            argb[3] = brga[3];
-
+            register uint8_t* buf = &(src[width * y + x]);
+            uint8_t temp = buf[0];
+            buf[0] = buf[2];
+            buf[2] = temp;
         }
     }
-    return dest;
+    return src;
 }
 
 uint32_t bioscolor_to_vesa(uint32_t vesa)

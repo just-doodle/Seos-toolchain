@@ -41,7 +41,7 @@ uint32_t logdisk_getFileSize(FILE* f)
     }
 
     logdisk_t* l = f->device;
-    return l->buf->size;
+    return l->buf->rw_ptr;
 }
 
 void logdisk_open(FILE* f, uint32_t flag)
@@ -78,6 +78,7 @@ void logdisk_mount()
     f->read = logdisk_read;
     f->write = logdisk_write;
     f->ioctl = logdisk_ioctl;
+    f->size = ldisk->buf->rw_ptr;
     devfs_add(f);
 }
 
@@ -169,6 +170,14 @@ void ldprintf(char* issuer, int type, char* fmt, ...)
     va_start(args, fmt);
     vsprintf(buf, NULL, fmt, args);
     va_end(args);
+
+    if(type == LOG_ERR)
+    {
+        char* ebuf = zalloc(strlen(buf) + strlen(issuer) + 16);
+        sprintf(ebuf, "Error occurred:\n[%s] %s", issuer, buf);
+        compositor_message_show(ebuf);
+        free(ebuf);
+    }
     logdisk_log(issuer, buf, type);
     free(buf);
 }

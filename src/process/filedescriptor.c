@@ -165,7 +165,6 @@ int fd_lseek(int file, int off, int dir)
     fd_t* f = get_fd(file);
     if(f == NULL)
         return -1;
-    serialprintf("[FDM] LSEEK: %s %d+%d\n", f->path, f->seek, off);
     switch(dir)
     {
     case SEEK_SET:

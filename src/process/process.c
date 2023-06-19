@@ -151,7 +151,7 @@ void exit(uint32_t ret)
     if(current_process->page_dir != NULL)
     {
         serialprintf("PDA: 0x%06x\n", current_process->page_dir_addr);
-        //kfree((void*)current_process->page_dir_addr);
+        kfree((void*)current_process->page_dir_addr);
     }
 
     list_remove_node(process_list, current_process->self);
@@ -284,6 +284,7 @@ void getcwd(char* buf, uint32_t sz)
 
 int chdir(char* path)
 {
+    int y = sizeof(pcb_t);
     if(path == NULL)
     {
         return -1;
@@ -344,6 +345,8 @@ void list_process()
 
 int isPause = 0;
 
+int window_n = 0;
+
 void process_kbh(uint8_t scancode)
 {
     char key;
@@ -360,17 +363,22 @@ void process_kbh(uint8_t scancode)
         case 0x4B:
             if(isPause)
             {
-                window_t* f = get_focused_window();
-                if(f->self->prev->val != NULL)
-                    window_focus(f->self->prev->val);
+                // window_t* f = get_focused_window();
+                // if(f->self->prev != NULL)
+                //     window_focus(f->self->prev->val);
+                // window_drawall();
+                compositor_focus_previous();
                 window_drawall();
             }break;
         case 0x4D:
             if(isPause)
             {
-                window_t* f = get_focused_window();
-                if(f->self->next->val != NULL)
-                    window_focus(f->self->next->val);
+                // window_t* f = get_focused_window();
+                // if(f->self->next != NULL)
+                //     window_focus(f->self->next->val);
+                // window_drawall();
+
+                compositor_focus_next();
                 window_drawall();
             }break;
         case 0xFA:
@@ -416,6 +424,7 @@ void process_kbh(uint8_t scancode)
         case 0x40:
             if(isPause)
             {
+                ifb_screenshot();
                 isPause = false;
             }
             break;
@@ -429,7 +438,10 @@ void process_kbh(uint8_t scancode)
         case 0x42:
             if(isPause)
             {
-                toggle_ifb();
+                int sz = get_allocated_size();
+                int max = get_heap_size();
+                serialprintf("[KHEAP] Heap used: %dMB/%dMB\n", sz/MB, max/MB);
+                printf("[KHEAP] Heap used: %dMB/%dMB\n", sz/MB, max/MB);
                 isPause = false;
             }
             break;
@@ -454,7 +466,7 @@ void process_kbh(uint8_t scancode)
 
     process_kbhandler_t handler = current_process->handler;
 
-    if ((validate(current_process->handler) == 1))
+    if (current_process->handler != 0)
     {
         current_process->handler(key, isCTRL, isALT, scancode);
     }

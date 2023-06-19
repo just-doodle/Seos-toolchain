@@ -43,7 +43,7 @@ typedef uint32_t uintptr_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "6.23.06.1NR"
+#define KERNEL_VERSION "6.23.06.2NR"
 #define KERNEL_VERSION_CODENAME "Mystic Mango"
 
 #define KERNEL_ENABLED_OPTIONS "\b"
@@ -58,6 +58,10 @@ typedef uint32_t uintptr_t;
 
 #define KERNEL_NAME "SectorOS-RW4"
 #define KERNEL_ARCH "x86"
+
+#ifndef KERNEL_COMPILER
+#define KERNEL_COMPILER "unknown"
+#endif
 
 #define KB 1024
 #define MB (1024*KB)

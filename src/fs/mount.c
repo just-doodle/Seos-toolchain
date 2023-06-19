@@ -3,6 +3,8 @@
 #include "vfs.h"
 #include "tmpfs.h"
 #include "process.h"
+#include "ext2.h"
+#include "kernelfs.h"
 
 list_t* mount_list = NULL;
 
@@ -19,9 +21,14 @@ int mount(char* devpath, char* mountpoint)
         list_push(mount_list, m);
         return 0;
     }
-    else if(t == FS_TYPE_TMPFS)
+    else if(t == FS_TYPE_EXT2)
     {
-        init_tmpfs(mountpoint);
+        init_ext2(devpath, mountpoint);
+        mount_info_t* m = ZALLOC_TYPES(mount_info_t);
+        m->device = strdup(devpath);
+        m->mountpoint = strdup(mountpoint);
+        m->fs_type = t;
+        list_push(mount_list, m);
         return 0;
     }
     // else if (t == FS_TYPE_EXT2)
@@ -48,16 +55,26 @@ int mount_specifyFS(char* devpath, char* mountpoint, uint32_t t)
         list_push(mount_list, m);
         return 0;
     }
+    else if(t == FS_TYPE_EXT2)
+    {
+        init_ext2(devpath, mountpoint);
+        mount_info_t* m = ZALLOC_TYPES(mount_info_t);
+        m->device = strdup(devpath);
+        m->mountpoint = strdup(mountpoint);
+        m->fs_type = t;
+        list_push(mount_list, m);
+        return 0;
+    }
     else if(t == FS_TYPE_TMPFS)
     {
         init_tmpfs(mountpoint);
         return 0;
     }
-    // else if (t == FS_TYPE_EXT2)
-    // {
-    //     init_ext2(devpath, mountpoint);
-    //     return 0;
-    // }
+    else if(t == FS_TYPE_KERNELFS)
+    {
+        init_kernelfs(mountpoint);
+        return 0;
+    }
     else
     {
         return -1;
@@ -118,9 +135,19 @@ int syscall_mount(const char* device, const char* target, const char* filesystem
         mount_specifyFS(device, target, FS_TYPE_SORFS);
         return 0;
     }
+    else if(strcmp(filesystem_type, "ext2") == 0)
+    {
+        mount_specifyFS(device, target, FS_TYPE_EXT2);
+        return 0;
+    }
     else if(strcmp(filesystem_type, "tmpfs") == 0)
     {
         mount_specifyFS(device, target, FS_TYPE_TMPFS);
+        return 0;
+    }
+    else if(strcmp(filesystem_type, "kernelfs") == 0)
+    {
+        mount_specifyFS(device, target, FS_TYPE_KERNELFS);
         return 0;
     }
     else

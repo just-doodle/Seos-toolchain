@@ -40,6 +40,21 @@ void* kmalloc_c(uint32_t size, int align, uint32_t* paddr)
     return (void*)tmp;
 }
 
+size_t  get_allocated_size()
+{
+    return size_allocated;
+}
+
+size_t get_heap_size()
+{
+    return heap_size;
+}
+
+size_t get_remaining_size()
+{
+    return (heap_size-size_allocated);
+}
+
 uint32_t kmalloc_int(uint32_t size, int align, uint32_t* paddr)
 {
     if(heap_start != NULL)
@@ -255,7 +270,10 @@ memory_block_t* bestFit(uint32_t size)
             if(best == NULL || curr->size < best->size)
                 best = curr;
         }
-        curr = curr ->next;
+        if(validate(curr->next) == 1)
+            curr = curr->next;
+        else
+            return NULL;
     }
     return best;
 }
@@ -354,26 +372,57 @@ noSplit:
         void * save = ret;
         tail = ptr;
 
+        if((validate(ret) != 1))
+        {
+            serialprintf("[MALLOC] Invalid ksbrk\n");
+            ret = ksbrk(realsize);
+            if((validate(ret) != 1))
+            {
+                return NULL;
+            }
+        }
+
         ret->size = blockSize - OVERHEAD;
         setFree(&(ret->size), 0);
         ptr = ptr + blockSize - sizeof(uint32_t);
         trailingSize = ptr;
-        *trailingSize = ret->size;
-        return save + sizeof(memory_block_t);
+        
+        if((validate(ptr) == 1) && (validate(ret + (sizeof(memory_block_t*) * 2)) == 1))
+            *trailingSize = ret->size;
+        else
+            serialprintf("[kmalloc] trailingsize not set\n");
+
+        if(validate(save + sizeof(memory_block_t)) == 1)
+            return save + sizeof(memory_block_t);
+        else
+        {
+            serialprintf("[kmalloc] Invalid memory block\n");
+            return NULL;
+        }
     }
 }
 
 void free(void* ptr)
 {
+    if(validate(ptr) != 1)
+        return;
     memory_block_t* curr = ptr - sizeof(memory_block_t);
+    if(validate(curr) != 1)
+        return;
     memory_block_t* prev = getPrevBlock(curr);
     memory_block_t* next = getNextBlock(curr);
     size_allocated -= curr->size;
     //serialprintf("[DYNMALLOC] PREV: 0x%06x%s | CURR: 0x%06x%s | NEXT: 0x%06x%s\n", (uint32_t)prev, (((uint32_t)prev) > ((uint32_t)heap_max) ? "!" : (((uint32_t)prev) < ((uint32_t)heap_start) ? "!!" : "\0")), (uint32_t)curr, (((uint32_t)curr) > ((uint32_t)heap_max) ? "!" : (((uint32_t)curr) < ((uint32_t)heap_start) ? "!!" : "\0")), (uint32_t)next, (((uint32_t)next) > ((uint32_t)heap_max) ? "!" : (((uint32_t)next) < ((uint32_t)heap_start) ? "!!" : "\0")));
     if(isMemoryPaged(kernel_page_dir, prev) == 0)
+    {
         prev = NULL;
+        serialprintf("PREVNULL\n");
+    }
     if(isMemoryPaged(kernel_page_dir, next) == 0)
+    {
         next = NULL;
+        serialprintf("NEXTNULL\n");
+    }
     if(isFree(prev) && isFree(next))
     {
         prev->size = getRealSize(prev->size) + 2*OVERHEAD + getRealSize(curr->size) + getRealSize(next->size);
@@ -405,7 +454,8 @@ void free(void* ptr)
     {
         setFree(&(curr->size), 1);
         uint32_t * trailingSize = (void*)curr + sizeof(memory_block_t) + getRealSize(curr->size);
-        *trailingSize = curr->size;
+        if(validate(trailingSize) == 1)
+            *trailingSize = curr->size;
         addToList(curr);
     }
 }

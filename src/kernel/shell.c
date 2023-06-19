@@ -320,9 +320,11 @@ int s_cat(list_t* args)
     if(f == NULL)
         return 1;
     uint32_t sz = vfs_getFileSize(f);
+    if(sz == 0)
+        sz = f->size;
     char* buf = zalloc(sz);
     vfs_read(f, 0, sz, buf);
-    printf("%s");
+    printf("%s\n", buf);
     free(buf);
     return 0;
 }

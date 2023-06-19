@@ -102,7 +102,7 @@ void stdin_buf_clear()
 void stdin_keybuff(uint8_t scancode)
 {
     charbuffer_push(cbuf, kcodeTochar(scancode));
-    //serialprintf("[STDIN] Got char %c in 0x%06x:0x%06x\n", stdin_buf[stdin_idx-1], stdin_idx-1, stdin_idx);
+    //serialprintf("[STDIN] Got char %c in 0x%06x:0x%06x\n", cbuf->buffer[cbuf->rw_ptr-1], cbuf->rw_ptr-1, cbuf->rw_ptr);
 }
 
 uint32_t stdin_read(FILE* f, uint32_t off, uint32_t sz, char* buf)

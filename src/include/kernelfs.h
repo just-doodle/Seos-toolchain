@@ -14,7 +14,13 @@ typedef struct kernelfs_node_struct
     listnode_t* self;
 }kernelfs_node_t;
 
+typedef struct kernelfs_struct
+{
+    list_t* nodes;
+    FILE* root;
+}kernelfs_t;
+
 void init_kernelfs(char* mountpoint);
-void kernelfs_add_variable(char* name, void* ptr, uint32_t len);
+void kernelfs_add_variable(const char* root, char* name, void* ptr, uint32_t size);
 
 #endif /*__KERNELFS_H__*/

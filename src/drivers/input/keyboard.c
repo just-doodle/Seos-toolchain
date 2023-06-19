@@ -63,6 +63,9 @@ void keyboard_callback(registers_t *reg)
         scancode = inb(KEYBOARD_DATA_PORT);
         break;
     }
+
+    process_kbh(scancode);
+
     if(khandler != NULL)
     {
         if(use_khandler == 1)

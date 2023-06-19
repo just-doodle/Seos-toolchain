@@ -2,6 +2,7 @@
 #include "sorfs.h"
 #include "logdisk.h"
 #include "process.h"
+#include "ext2.h"
 
 tree_t *vfs_tree;
 vfs_node* vfs_root;
@@ -101,6 +102,11 @@ uint32_t find_fs(char* device)
     {
         ldprintf("vfs->find_fs", LOG_INFO, "Found SORFS filesystem on %s", device);
         return FS_TYPE_SORFS;
+    }
+    else if(isext2(device) == 1)
+    {
+        ldprintf("vfs->find_fs", LOG_INFO, "Found EXT2 filesystem on %s", device);
+        return FS_TYPE_EXT2;
     }
     else
     {

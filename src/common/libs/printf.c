@@ -120,6 +120,14 @@ void vsprintf_helper(char *str, void (*putchar)(char), const char *fmt, uint32_t
                 else
                 {
                     char *t = (char *)va_arg(arg, int);
+                    if(t == NULL)
+                    {
+                        t = strdup("(NULL)");
+                    }
+                    if(virt2phys(kernel_page_dir, t) == NULL)
+                    {
+                        t = strdup("(INVALID POINTER)");
+                    }
                     while (*t)
                     {
                         putchar(*t);

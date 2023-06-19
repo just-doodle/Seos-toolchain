@@ -51,6 +51,16 @@ void draw_text(canvas_t * canvas, char * text, int start_x, int start_y)
 
             default:
                 col++;
+                if(col > canvas->width/FONT_WIDTH)
+                {
+                    row++;
+                    col = 0;
+                    if(row >= canvas->height/FONT_HEIGHT)
+                    {
+                        row = 0;
+                        col = 0;
+                    }
+                }
                 chr = text[i];
                 break;
         }
