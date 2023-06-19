@@ -25,6 +25,8 @@ export BUILD_ALL=true
 export USE_DEFAULT=false
 export ADD_PATH=false
 
+export DOWNLOAD_I686_ELF_TOOLS=false
+
 function backup_path
 {
     echo "$PATH" > "$TESTDIR/PATH_${1}"
@@ -63,6 +65,17 @@ function build_i686_elf
         else
             "$SCRIPTDIR"i686-elf-tools.sh linux gcc binutils zip --build_directory "$SYSROOT/src/build-i686-elf"
         fi
+        touch "$TESTDIR/I686_ELF_TOOLS"
+        extract_i686_elf
+    fi
+}
+
+function download_i686_elf
+{
+    if ls "$TESTDIR/I686_ELF_TOOLS" 1> /dev/null 2>&1; then
+        echo "I686_elf toolchain is already built. To reinstall, remove $TESTDIR/I686_ELF_TOOLS"
+    else
+        wget https://github.com/lordmilko/i686-elf-tools/releases/download/7.1.0/i686-elf-tools-linux.zip  -O "$I686_ELF_TOOLCHAIN_ZIP"
         touch "$TESTDIR/I686_ELF_TOOLS"
         extract_i686_elf
     fi
@@ -444,6 +457,7 @@ do
         newlib) NEWLIB=true;               BUILD_ALL=false;                shift ;;
         ostools) OSTOOLS=true;             BUILD_ALL=false;                shift ;;
         i686_elf_toolchain) I686_ELF_TOOLS=true;   BUILD_ALL=false;        shift ;;
+        download_i686_elf_tools) DOWNLOAD_I686_ELF_TOOLS=true;             shift ;;
         --add_path) ADD_PATH=true;                                         shift ;;
         --use_as_default) USE_DEFAULT=true;                                shift ;;
         -h |--help) HELP=true;                                             shift ;;
@@ -510,7 +524,11 @@ function main
     mkdir -p "$TESTDIR"
 
     if [[ $I686_ELF_TOOLS == true ]]; then
-        build_i686_elf
+        if [[ $DOWNLOAD_I686_ELF_TOOLS == true ]]; then
+            download_i686_elf
+        else
+            build_i686_elf
+        fi
     fi
 
     if [[ $NEWLIB == true ]]; then

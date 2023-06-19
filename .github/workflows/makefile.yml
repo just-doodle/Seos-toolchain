@@ -18,12 +18,11 @@ jobs:
     - name: Install prereqs
       run:  |
         sudo apt update
-        sudo apt upgrade
-        sudo apt install grub-pc-bin nasm mtools qemu-utils xorriso
+        sudo apt install grub-pc-bin nasm mtools qemu-utils xorriso wget unzip
       shell: bash
 
     - name: Create toolchain
-      run: ./src/scripts/make_toolchain.sh --parallel_build -s ~/sysroot
+      run: ./src/scripts/make_toolchain.sh --parallel_build -s ~/sysroot download_i686_elf_tools
       shell: bash
 
     - name: Compile kernel
