@@ -18,7 +18,7 @@ jobs:
     - name: Install prereqs
       run:  |
         sudo apt update
-        sudo apt install grub-pc-bin nasm mtools qemu-utils xorriso wget unzip
+        sudo apt install grub-pc-bin nasm mtools qemu-utils xorriso wget unzip libgmp3-dev libmpc-dev	libmpfr-dev	
       shell: bash
 
     - name: Create toolchain
