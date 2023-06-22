@@ -138,7 +138,7 @@ void logdisk_printType(char* issuer, char* msg, int type)
         serialprintf("[ %s ] %s: %s\n", logdisk_type_to_str(type), issuer, msg);
         break;
     case LOG_DEBUG:
-        printf(TERM_DEBUG_COLOR"[ %s ] %s: %s\n"TERM_RESET_COLOR, logdisk_type_to_str(type), issuer, msg);
+        //printf(TERM_DEBUG_COLOR"[ %s ] %s: %s\n"TERM_RESET_COLOR, logdisk_type_to_str(type), issuer, msg);
         serialprintf("[ %s ] %s: %s\n", logdisk_type_to_str(type), issuer, msg);
         break;
     default:

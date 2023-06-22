@@ -194,6 +194,9 @@ $(IMAGEFILE): sorfs_compile create_test_program
 run: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) -enable-kvm -cpu host -serial stdio | tee k.log
 
+runnkvm: $(ISOFILE)
+	$(QEMU) $(QEMUFLAGS) -serial stdio | tee k.log
+
 rund: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS)
 

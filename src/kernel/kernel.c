@@ -303,7 +303,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     printtime();
 
-    compositor_load_wallpaper("/wallpaper.bmp", 2);
+    //compositor_load_wallpaper("/wallpaper.bmp", 2);
     init_vbox();
     init_shell();
 
@@ -370,6 +370,12 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     load_kernel_symbols(info);
 
     symbol_t* s = get_kernel_symbol_by_name("kernelmain");
+    if(s != NULL)
+    {
+        serialprintf("%s: 0x%x, %dB\n", s->name, s->addr, s->size);
+    }
+
+    s = get_kernel_symbol_by_name("serialprintf");
     if(s != NULL)
     {
         serialprintf("%s: 0x%x, %dB\n", s->name, s->addr, s->size);

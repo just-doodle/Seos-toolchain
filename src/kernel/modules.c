@@ -102,6 +102,11 @@ int load_module(char** argv)
         modules = list_create();
 
     FILE* f = file_open(argv[0], OPEN_RDONLY);
+
+    if(f == NULL)
+        kernel_panic("Given module does not exist!");
+
+
     uint32_t mod_sz = vfs_getFileSize(f);
     
     uint8_t* buf = zalloc(mod_sz);
@@ -147,7 +152,7 @@ int load_module(char** argv)
         else
         {
             shdr->sh_addr = (buf + shdr->sh_offset);
-            serialprintf("SHDR %d: 0x%x\n", i, shdr->sh_addr);
+            ldprintf("Module loader", LOG_DEBUG, "SHDR %d: 0x%x", i, shdr->sh_addr);
         }
     }
 
@@ -179,21 +184,28 @@ int load_module(char** argv)
             {
                 elf_section_header_t* sym_shdr = (buf + (head->e_shoff + (head->e_shentsize * symtab[s].st_shndx)));
                 symtab[s].st_value = symtab[s].st_value + sym_shdr->sh_addr;
-                serialprintf("SYM: %s : 0x%x\n", &(strtab[symtab[s].st_name]), symtab[s].st_value);
+                ldprintf("Module loader", LOG_DEBUG, "LOCAL %s: 0x%x %dB", &(strtab[symtab[s].st_name]), symtab[s].st_value, symtab[s].st_size);
             }
             else if(symtab[s].st_shndx == SHN_UNDEF) // Kernel symbol
             {
-                serialprintf("STRTAB: 0x%x\n", strtab);
-                serialprintf("SYMTAB: 0x%x\n", symtab);
-                serialprintf("SYM: %s\n", &(strtab[symtab[s].st_name]));
-                symtab[s].st_value = (uintptr_t)get_kernel_symbol_by_name(&(strtab[symtab[s].st_name]));
+                if(strcmp(&(strtab[symtab[s].st_name]), "") == 0)
+                    continue;
+
+                symbol_t* sym = get_kernel_symbol_by_name(&(strtab[symtab[s].st_name]));
+                if(sym == NULL)
+                {
+                    ldprintf("Module loader", LOG_ERR, "Cannot resolve symbol named %s from the list of kernel symbols", &(strtab[symtab[s].st_name]));
+                    kernel_panic("Cannot resolve kernel symbols present in module");
+                }
+                symtab[s].st_value = (uintptr_t)sym->addr;
+                symtab[s].st_size = sym->size;
+                ldprintf("Module loader", LOG_DEBUG, "%s: 0x%x %dB", &(strtab[symtab[s].st_name]), symtab[s].st_value, symtab[s].st_size);
             }
             add_sym_to_modentry(strdup(&(strtab[symtab[s].st_name])), symtab[s].st_value, symtab[s].st_size, mod_entry);
             if(symtab[s].st_name && (strcmp(&(strtab[symtab[s].st_name]), "metadata") == 0))
             {
                 mod_info = (void*)symtab[s].st_value;
                 mod_entry->info = mod_info;
-                serialprintf("MOD_INFO: 0x%x\n", mod_info);
             }
             sym_num++;
         }
@@ -238,7 +250,7 @@ int load_module(char** argv)
                 ptr = (rel_table->r_offset + r_section->sh_addr);
                 A = *ptr;
                 P = (uintptr_t)ptr;
-                ldprintf("Module loader", LOG_INFO, "Using symbol %s", name);
+                ldprintf("Module loader", LOG_DEBUG, "Using symbol %s", name);
                 if(!get_module_symbol_by_name(name, symtab, strtab, sym_num))
                 {
                     if(get_kernel_symbol_by_name(name))
@@ -260,11 +272,12 @@ int load_module(char** argv)
             {
             case R_386_32:
                 *ptr = A + S;
-                serialprintf("0x%x = 0x%x + 0x%x\n", *ptr, A, S);
+                ldprintf("Module loader", LOG_DEBUG, "'R_386_32' 0x%x = 0x%x + 0x%x", *ptr, A, S);
                 break;
             case R_386_PC32:
                 *ptr = A + S - P;
                 serialprintf("0x%x = 0x%x + 0x%x - 0x%x\n", *ptr, A, S, P);
+                ldprintf("Module loader", LOG_DEBUG, "'R_386_PC32' 0x%x = 0x%x + 0x%x - 0x%x", *ptr, A, S, P);
                 break;
             default:
                 ldprintf("Module loader", LOG_ERR, "Unsupported reallocation %d found", ELF32_R_TYPE(rel_table[rel].r_info));
@@ -281,19 +294,14 @@ int load_module(char** argv)
     int argc = 0;
 	for (char ** aa = argv; *aa; ++aa) ++argc;
 
-    serialprintf("Got symbols:\n");
     module_init* init = NULL;
     foreach(g, mod_entry->symbols)
     {
         symbol_t* s = g->val;
-        serialprintf("\t-%s: 0x%x 0x%x\n", s->name, s->addr, s->size);
-        if (strcmp(s->name, "init") == 0)
-        {
-            init = 0xc1893310;
-        }
+        ldprintf("Module loader", LOG_DEBUG, "%s: 0x%x 0x%x", s->name, s->addr, s->size);
     }
 
     xxd(mod_info, sizeof(module_info_t));
     ldprintf("Module loader", LOG_INFO, "Initializing module: %s", mod_info->name);
-    return (*((module_init*)0x8312663d))(argc, argv);
+    return mod_info->init(argc, argv);
 }

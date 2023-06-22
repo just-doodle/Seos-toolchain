@@ -128,6 +128,9 @@ void load_kernel_symbols(multiboot_info_t* info)
 
     char* strtab = NULL;
 
+    elf_section_header_t* sym_shdr = NULL;
+    elf_section_header_t* str_shdr = NULL;
+
     for(uint32_t i = 0; i < num; i++)
     {
         if(shdr[i].sh_type == SHT_SYMTAB)
@@ -137,20 +140,16 @@ void load_kernel_symbols(multiboot_info_t* info)
             sym_num = (shdr[i].sh_size / sizeof(elf_sym_t));
             strtab = shdr[shdr[i].sh_link].sh_addr;
             alloc_region(kernel_page_dir, strtab, strtab + shdr[shdr[i].sh_link].sh_size, 1, 1, 1);
+            sym_shdr = &shdr[i];
+            str_shdr = &(shdr[shdr[i].sh_link]);
+
         }
     }
 
     // ASSERT(symtab == NULL && "Kernel symbols not loaded");
 
-    uint32_t func_num = 0;
-
-    for(uint32_t i = 0; i < sym_num; i++)
-    {
-        if(symtab[i].st_info & STT_FUNC)
-        {
-            func_num++;
-        }
-    }
+    uint32_t func_num = (sym_shdr->sh_size/sym_shdr->sh_entsize);
+    ldprintf("KERNEL", LOG_INFO, "Found %d symbols", func_num);
 
     kernel_symbols = zalloc(sizeof(symbol_t) * func_num);
 
@@ -162,8 +161,8 @@ void load_kernel_symbols(multiboot_info_t* info)
         {
             kernel_symbols[j].addr = symtab[i].st_value;
             kernel_symbols[j].size = symtab[i].st_size;
-            kernel_symbols[j].name = strdup(&strtab[symtab[i].st_name]);
-            //serialprintf("%s: 0x%x %dB\n", kernel_symbols[j].name, kernel_symbols[j].addr, kernel_symbols[j].size);
+            kernel_symbols[j].name = strdup(&(strtab[symtab[i].st_name]));
+            serialprintf("%s: 0x%x %dB\n", kernel_symbols[j].name, kernel_symbols[j].addr, kernel_symbols[j].size);
             j++;
         }
         // else if(symtab[i].st_info & STT_OBJECT)
