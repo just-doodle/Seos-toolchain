@@ -86,13 +86,13 @@ function main {
     
     downloadSources
     
-    if [[ $WINDOWS_ONLY == true ]]; then
+    if [[ $LINUX_ONLY == true ]]; then
         echoColor "Skipping compiling Linux as 'win' was specified in commandline args '$args'"
     else    
         compileAll "windows"
     fi
     
-    if [[ $LINUX_ONLY == true ]]; then
+    if [[ $WINDOWS_ONLY == true ]]; then
         echoColor "Skipping compiling Windows as 'linux' was specified in commandline args '$args'"
     else    
         compileAll "linux"
