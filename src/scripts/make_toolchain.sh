@@ -11,6 +11,7 @@ PATCHDIR="$PWD/patches"
 GCC_VERSION=12.2.0
 BINUTILS_VERSION=2.40
 
+PACKAGE_PATH=0
 export PARALLEL=false
 export HELP=false
 export CLEAN_ALL=false
@@ -443,7 +444,7 @@ function clean_ostools
 function package
 {
     pushd "$SYSROOT"
-    tar -cf output_sectoros.tar.xz bin i686-elf lib libexec share usr
+    tar -cf "$1" bin i686-elf lib libexec share usr
 }
 
 while [[ $# -gt 0 ]]
@@ -461,6 +462,7 @@ do
         download_i686_elf_tools) DOWNLOAD_I686_ELF_TOOLS=true;             shift ;;
         --add_path) ADD_PATH=true;                                         shift ;;
         --use_as_default) USE_DEFAULT=true;                                shift ;;
+        --package) PACKAGE_PATH="$2";                                      shift ;;
         -h |--help) HELP=true;                                             shift ;;
         *)                                                                 shift ;;
     esac
@@ -546,6 +548,12 @@ function main
     if [[ $ADD_PATH == true ]]; then
         echo "Adding the paths of executables to PATH variable"
         install_to_bashrc
+    fi
+
+    if [[ $PACKAGE_PATH == 0 ]]; then
+        echo ""
+    else
+        package "$PACKAGE_PATH"
     fi
 
     echo "Building complete. You may want to change the Tooldir to $SYSROOT/bin in the Makefile in Sectoros-RW4 root directory."
