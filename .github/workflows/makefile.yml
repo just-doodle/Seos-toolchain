@@ -22,7 +22,7 @@ jobs:
       shell: bash
 
     - name: Create toolchain
-      run: ./src/scripts/make_toolchain.sh --parallel_build -s ~/sysroot download_i686_elf_tools
+      run: ./src/scripts/make_toolchain.sh --parallel_build -s ~/sysroot
       shell: bash
 
     - name: Compile kernel

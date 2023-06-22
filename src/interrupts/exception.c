@@ -2,6 +2,7 @@
 #include "vga_text.h"
 #include "debug.h"
 #include "process.h"
+#include "logdisk.h"
 
 int isLessMSG = 0;
 
@@ -91,6 +92,7 @@ void exception_handler(registers_t cps)
         else
         {
             text_chcolor(VGA_RED, VGA_BLACK);
+            logdisk_change_policy(LOG_OFF);
             printf("KERNEL PANIC. EXCEPTION OCCURRED %d: %s\n", cps.ino, exception_messages[cps.ino]);
             printf("Extended stack pointer = 0x%06x\n", cps.esp);
             printf("Extended instruction pointer  = 0x%06x\n", cps.eip);
@@ -106,6 +108,20 @@ void exception_handler(registers_t cps)
             printf("ESI = 0x%06x\n", cps.esi);
             printf("EDI = 0x%06x\n", cps.edi);
             printf("EBP = 0x%06x\n", cps.ebp);
+            ldprintf("KERNEL", LOG_ERR, "KERNEL PANIC. EXCEPTION OCCURRED %d: %s", cps.ino, exception_messages[cps.ino]);
+            ldprintf("KERNEL", LOG_ERR, "Extended stack pointer = 0x%06x", cps.esp);
+            ldprintf("KERNEL", LOG_ERR, "Extended instruction pointer  = 0x%06x", cps.eip);
+            ldprintf("KERNEL", LOG_ERR, "Code segment selector = 0x%06x", cps.cs);
+            ldprintf("KERNEL", LOG_ERR, "Extended flags = 0x%06x", cps.eflags);
+            ldprintf("KERNEL", LOG_ERR, "Error code = 0x%06x", cps.ecode);
+            ldprintf("KERNEL", LOG_ERR, "Registers:");
+            ldprintf("KERNEL", LOG_ERR, "EAX = 0x%06x", cps.eax);
+            ldprintf("KERNEL", LOG_ERR, "EBX = 0x%06x", cps.ebx);
+            ldprintf("KERNEL", LOG_ERR, "ECX = 0x%06x", cps.ecx);
+            ldprintf("KERNEL", LOG_ERR, "EDX = 0x%06x", cps.edx);
+            ldprintf("KERNEL", LOG_ERR, "ESI = 0x%06x", cps.esi);
+            ldprintf("KERNEL", LOG_ERR, "EDI = 0x%06x", cps.edi);
+            ldprintf("KERNEL", LOG_ERR, "EBP = 0x%06x", cps.ebp);
             serialprintf("KERNEL PANIC. EXCEPTION OCCURRED %d: %s\n", cps.ino, exception_messages[cps.ino]);
             serialprintf("Extended stack pointer = 0x%06x\n", cps.esp);
             serialprintf("Extended instruction pointer  = 0x%06x\n", cps.eip);

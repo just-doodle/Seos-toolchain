@@ -236,3 +236,7 @@
 * Added entries to mount syscall
 * Implemented a function to show message in compositor
 * Added function to access memory mapped IO
+
+22-06-2023: 07:56 PM IST v6.23.06.3NR
+* Added more information when kernel crashes
+* Updated the Github Actions

@@ -77,7 +77,7 @@ echo "PARALLEL         = ${PARALLEL}"
 function main {
 
     installPackages
-    installMXE
+    # installMXE
     
     if [[ $ENV_ONLY == true ]]; then
         echoColor "Successfully installed build environment. Exiting as 'env' only was specified"

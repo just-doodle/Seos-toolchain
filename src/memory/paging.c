@@ -2,6 +2,7 @@
 #include "kheap.h"
 #include "debug.h"
 #include "elf_loader.h"
+#include "logdisk.h"
 
 extern void * heap_start, * heap_end, * heap_max, * heap_curr;
 extern bool kheap_enabled;
@@ -303,6 +304,8 @@ page_table_t* copy_page_table(page_directory_t * src_page_dir, page_directory_t 
     return table;
 }
 
+char page_hnd_error[1024];
+
 void page_fault_handler(registers_t* regs)
 {
     printf("Page fault:\n");
@@ -324,6 +327,15 @@ void page_fault_handler(registers_t* regs)
     if(inst_fetch) printf("Instruction fetch ");
     printf("]\n");
 
+    strcpy(page_hnd_error, "Possible causes: [ ");
+    if(!present) strcat(page_hnd_error, "Page not present ");
+    if(rw) strcat(page_hnd_error, "Page is read only ");
+    if(user) strcat(page_hnd_error, "Page is read only ");
+    if(reserved) strcat(page_hnd_error, "Overwrote reserved bits ");
+    if(inst_fetch) strcat(page_hnd_error, "Instruction fetch ");
+    strcat(page_hnd_error, "]");
+    ldprintf("Page manager", LOG_ERR, page_hnd_error);
+
     serialprintf("Possible causes: [ ");
     if(!present) serialprintf("Page not present ");
     if(rw) serialprintf("Page is read only ");
@@ -336,6 +348,9 @@ void page_fault_handler(registers_t* regs)
 
     printf("Faulting address: 0x%x\n", faulting_addr);
     printf("Faulting virtual address: 0x%x : {%s+0x%x}\n", faulting_vaddr, vsym.name, vsym.offset);
+
+    ldprintf("Page manager", LOG_ERR, "Faulting address: 0x%x", faulting_addr);
+    ldprintf("Page manager", LOG_ERR, "Faulting virtual address: 0x%x : {%s+0x%x}", faulting_vaddr, vsym.name, vsym.offset);
 
     serialprintf("Faulting address: 0x%x\n", faulting_addr);
     serialprintf("Faulting virtual address: 0x%x : {%s+0x%x}\n", faulting_vaddr, vsym.name, vsym.offset);

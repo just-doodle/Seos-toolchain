@@ -11,7 +11,9 @@ OSTOOL_DIR=~/sysroot/usr/bin/
 
 CC=i686-elf-gcc
 CCVERSION = $(shell echo $(CC) $(shell $(PREFIX)$(CC) --version | grep $(CC) | sed 's/^.* //g'))
-CFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -DKERNEL_COMPILER="\"$(CCVERSION)\"" -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -Wpedantic -ggdb -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=1 -D__COMPOSITOR_LOW_END__=1
+CFLAGS=
+KCFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -DKERNEL_COMPILER="\"$(CCVERSION)\"" -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -Wpedantic -ggdb -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=1 -D__COMPOSITOR_LOW_END__=0 $(CFLAGS)
+
 
 CXX=$(TOOLDIR)/i686-elf-g++
 CXXFLAGS=
@@ -171,7 +173,7 @@ $(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
 
 %.o : %.c
 	@echo '[CC] $@'
-	@$(PREFIX)/$(CC) $(CFLAGS) -c -o $@ $<
+	@$(PREFIX)/$(CC) $(KCFLAGS) -c -o $@ $<
 
 %.o : %.s
 	@echo '[GAS] $@'
