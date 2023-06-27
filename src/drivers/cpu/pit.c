@@ -32,6 +32,7 @@ void pit_callback(registers_t* regs)
 {
     asm("cli");
     //asm("incl %0": "+r"(ticks));
+    // memcpy(&saved_context, regs, sizeof(registers_t));
     timer_interface_call();
     asm("sti");
 }

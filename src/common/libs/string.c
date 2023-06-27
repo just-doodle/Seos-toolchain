@@ -300,6 +300,8 @@ char *strdup(const char *src)
 {
     if(src == NULL)
         return NULL;
+    if(validate(src) != 1)
+        return NULL;
     int len = strlen(src) + 1;
     char *dst = (char*)kmalloc(len);
     memcpy(dst, src, len);

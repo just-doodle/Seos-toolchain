@@ -69,8 +69,8 @@ void init_stdout()
 
 uint32_t stdout_write(FILE* f, uint32_t off, size_t sz, char* buffer)
 {
-    //serialprintf("[%s] %s", f, buffer);
-    if(memcmp((uint8_t*)f, (uint8_t*)stdout_f, sizeof(FILE)) == 0)
+    serialprintf("%s", buffer);
+    if(/*memcmp((uint8_t*)f, (uint8_t*)stdout_f, sizeof(FILE)) == 0*/1)
     {
         printf("%s", strndup(buffer, sz));
         memset(buffer, 0, sz);

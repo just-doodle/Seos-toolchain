@@ -4,12 +4,14 @@
 #include "logdisk.h"
 #include "mount.h"
 #include "kernelfs.h"
+#include "modules.h"
 
 symbol_t* kernel_symbols = NULL;
 uint32_t n_kernel_symbols = 0;
 
 void kernel_atCrash()
 {
+    module_stopall();
     logdisk_dump("/kernel.log");
 }
 
@@ -162,7 +164,7 @@ void load_kernel_symbols(multiboot_info_t* info)
             kernel_symbols[j].addr = symtab[i].st_value;
             kernel_symbols[j].size = symtab[i].st_size;
             kernel_symbols[j].name = strdup(&(strtab[symtab[i].st_name]));
-            serialprintf("%s: 0x%x %dB\n", kernel_symbols[j].name, kernel_symbols[j].addr, kernel_symbols[j].size);
+            kernel_symbols[j].type = ELF32_ST_TYPE(symtab[i].st_info);
             j++;
         }
         // else if(symtab[i].st_info & STT_OBJECT)

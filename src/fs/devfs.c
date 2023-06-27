@@ -31,7 +31,7 @@ bool isAdded(FILE* node)
 {
     for(int i = 0; i < num_nodes; i++)
     {
-        if(&(nodes[i]) == node)
+        if(memcmp(&(nodes[i]), node, sizeof(FILE)) == 1)
             return true;
     }
     return false;
@@ -68,8 +68,8 @@ void devfs_add(FILE* node)
     if(node == NULL)
         return;
 
-    if(isAdded(node))
-        return;
+    // if(isAdded(node))
+    //     return;
 
     nodes[num_nodes] = *node;
     nodes[num_nodes].inode_num = num_nodes;
@@ -81,7 +81,7 @@ void devfs_add(FILE* node)
     strcat(mountpoint, node->name);
     printf("Mounting on %s\n", mountpoint);
 
-    //vfs_mountDev(mountpoint, node);
+    vfs_mountDev(mountpoint, node);
     kfree(mountpoint);
 }
 
@@ -115,6 +115,7 @@ void devfs_remove(char* name)
     {
         nodes[j] = nodes[j + 1];
     }
+    num_nodes--;
 }
 
 vfs_node *devfs_finddir(vfs_node *node, char *name)

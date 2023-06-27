@@ -34,7 +34,7 @@ OBJDUMP = i686-elf-objdump
 OBJCOPYFLAGS = --strip-debug --strip-unneeded
 
 QEMU=qemu-system-i386
-QEMUFLAGS=-cdrom $(ISOFILE) -m 4096M -boot d -hda sorhd
+QEMUFLAGS=-cdrom $(ISOFILE) -m 4096M -boot d -hda sorhd -hdb fat32.img
 QEMUDFLAGS= -s -S -serial file:k.log -daemonize -m 512M
 
 PROJECT=SectorOS-RW4
@@ -138,6 +138,9 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/kernel/modules.o \
 			$(SRCDIR)/kernel/kernel.o
 
+MODULES= $(FILESDIR)/test.ko \
+		 $(FILESDIR)/pcspkr.ko 
+
 all: kernel iso
 
 kernel: $(EXECUTABLE)
@@ -152,19 +155,22 @@ $(EXECUTABLE): $(OBJECTS)
 
 compile_objs: $(OBJECTS)
 
-$(ISOFILE): $(IMAGEFILE) $(EXECUTABLE)
+$(ISOFILE): $(IMAGEFILE) $(EXECUTABLE) $(MODULES)
 	@echo '[GRUB] $@'
 	@mkdir -p $(PROJECT)/boot/grub
 	@cp $(EXECUTABLE) $(PROJECT)/boot/
-	@cp sorhd $(PROJECT)/boot/
 	@echo 'set timeout=3' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set default=0' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set root=(cd)' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '' >> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'menuentry "$(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'menuentry "Boot $(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 2' >> $(PROJECT)/boot/grub/grub.cfg
-	@#echo 'module /boot/sorhd' >> $(PROJECT)/boot/grub/grub.cfg
-	@#echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'menuentry "Boot $(PROJECT) in debug mode" { '>> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
 	@$(GRUBDIR)grub-mkrescue -o $(ISOFILE) $(PROJECT) --product-name=$(PROJECT)
@@ -192,7 +198,7 @@ $(IMAGEFILE): sorfs_compile create_test_program
 	./sorfs -c $@ $(wildcard $(FILESDIR)/*)
 
 run: $(ISOFILE)
-	$(QEMU) $(QEMUFLAGS) -enable-kvm -cpu host -serial stdio | tee k.log
+	$(QEMU) $(QEMUFLAGS) -enable-kvm -cpu host -serial stdio -soundhw pcspk | tee k.log
 
 runnkvm: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) -serial stdio | tee k.log
@@ -250,8 +256,13 @@ stopTAP1:
 	@sudo ifconfig $(NETWORK_INTERFACE) up
 	@sudo dhclient -v $(NETWORK_INTERFACE)
 
-modules:
-	$(CC) -c -g -pedantic -ffreestanding -static -I$(INCLUDEDIR) $(SRCDIR)/modules/test.c -o files/test.ko 
+modules: $(MODULES)
+
+$(FILESDIR)/%.ko : $(SRCDIR)/modules/%.c
+	$(CC) -c -g -pedantic -ffreestanding -static -I$(INCLUDEDIR) -o $@ $<
+
+moduleclean:
+	rm $(MODULES)
 
 runnet: $(ISOFILE) setupTAP
 	sudo $(QEMU) $(QEMUFLAGS) -accel kvm -serial stdio -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device rtl8139,netdev=mynet0,mac=52:55:00:d1:55:01 | tee k.log

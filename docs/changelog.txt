@@ -240,3 +240,19 @@
 22-06-2023: 07:56 PM IST v6.23.06.3NR
 * Added more information when kernel crashes
 * Updated the Github Actions
+
+27-06-2023: 04:44 PM IST v7.23.06.4NR
+* Fully implemented module support
+* Added support for module dependencies
+* Added options to grub to boot OS for showing debug messages
+* Kernel stops all modules when crashed
+* Implemented dumping the stack trace with module symbols
+* Added new test module
+* Added a driver module for pc speaker
+* Fixed some bugs in devfs
+* Fixed bug with kernel exception handler which causes the exception handler to cause exception itself
+* Updated wallpaper.bmp
+* Updated screenshots
+* Added memory protection for some kernel functions
+* Added new shell commands
+* Updated run_vbox.sh to enable the passthrough of pc speaker

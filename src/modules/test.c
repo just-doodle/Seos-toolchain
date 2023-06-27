@@ -1,20 +1,22 @@
 #include "system.h"
 #include "printf.h"
 #include "modules.h"
+#include "serial.h"
 
-int init(int argc, char** argv)
+static int init(int argc, char** argv)
 {
-    serialprintf("Hello kernel.\nThis is a test module.\n");
+    ldprintf("Module Test", LOG_WARN, "Hello kernel");
     return 0;
 }
 
-int fini()
+static void test_function()
+{
+    ldprintf("Test function module", LOG_INFO, "Calling this function from other module");
+}
+
+static int fini()
 {
     return 0;
 }
 
-module_info_t metadata = {
-    .name = "test",
-    .init = init,
-    .fini = fini,
-};
+MODULE_DEF(test, init, fini);

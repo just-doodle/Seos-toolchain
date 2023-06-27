@@ -329,6 +329,7 @@ vfs_node *get_mountpoint(char **path)
 
 vfs_node *file_open(char *file_name, uint32_t flags)
 {
+    // ldprintf("VFS", LOG_DEBUG, "Opening file: %s", file_name);
     char *curr_token = NULL;
     char *filename = strdup(file_name);
     char *free_filename = filename;

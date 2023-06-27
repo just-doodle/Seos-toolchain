@@ -6,6 +6,8 @@
 
 int isLessMSG = 0;
 
+#define NO_KERNEL_OOPS 0
+
 char* exception_messages[] =
 {
     "Division By Zero",
@@ -50,6 +52,7 @@ void exception_handler(registers_t cps)
     {
         printf("\033[31m");
 #if __ENABLE_DEBUG_SYMBOL_LOADING__
+#if NO_KERNEL_OOPS
         if(current_process != NULL)
         {
             text_clear();
@@ -77,6 +80,7 @@ void exception_handler(registers_t cps)
             goto exce_exit;
             return;
         }
+#endif
 #endif
 
 
@@ -137,6 +141,9 @@ void exception_handler(registers_t cps)
             serialprintf("ESI = 0x%06x\n", cps.esi);
             serialprintf("EDI = 0x%06x\n", cps.edi);
             serialprintf("EBP = 0x%06x\n", cps.ebp);
+            if(maxE >= 3)
+                kernel_panic("Exception has occurred in kernel space. Please reboot.");
+            maxE++;
             backtrace();
             serialprintf("%s\n", exception_messages[cps.ino]);
             compositor_background_fill();

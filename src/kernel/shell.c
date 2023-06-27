@@ -9,6 +9,7 @@
 #include "compositor.h"
 #include "stdout.h"
 #include "bitmap.h"
+#include "modules.h"
 
 shellcmd_t cmds[256];
 int c_cmds = 0;
@@ -274,6 +275,47 @@ int s_showbmp(list_t* args)
     return 0;
 }
 
+int s_insmod(list_t* args)
+{
+    uint32_t argc = list_size(args);
+    if(argc < 2)
+    {
+        printf("usage: %s [file] params...\n", list_get_node_by_index(args, 0)->val);
+        return 1;
+    }
+
+    char** argv = zalloc(sizeof(uint32_t)*argc);
+    int j;
+    for(j = 1; j < argc; j++)
+    {
+        listnode_t* l = list_get_node_by_index(args, j);
+        argv[j-1] = zalloc(strlen(l->val));
+        strcpy(argv[j-1], l->val);
+    }
+    argv[j++] = NULL;
+
+    return load_module(argv);
+}
+
+int s_rmmod(list_t* args)
+{
+    uint32_t argc = list_size(args);
+    if(argc < 2)
+    {
+        printf("usage: %s [name]\n", list_get_node_by_index(args, 0)->val);
+        return 1;
+    }
+
+    char* name = list_get_node_by_index(args, 1)->val;
+    return unload_module(name);
+}
+
+int s_lsmod(list_t* args)
+{
+    print_list_modules();
+    return 0;
+}
+
 int s_elf(list_t* args)
 {
     uint32_t argc = list_size(args);
@@ -365,6 +407,9 @@ void init_shell()
     getCMD("showbmp", "Shows the given bitmap image.", s_showbmp);
     getCMD("showimg", "Shows the given image.", s_showimg);
     getCMD("cat", "Prints the content of the file", s_cat);
+    getCMD("insmod", "Installs the given module to kernel", s_insmod);
+    getCMD("rmmod", "Unloads the module with given name", s_rmmod);
+    getCMD("lsmod", "Lists the loaded modules", s_lsmod);
 }
 
 void clear_buffer()
@@ -386,7 +431,7 @@ void shell_f()
             shellcmdf_t f = cmds[i].f;
             f(args);
             clear_buffer();
-            printf("#/> ");
+            printf("kshell #> ");
             return;
         }
         else if(strncmp(list_get_node_by_index(args, 0)->val, "/", 1) == 0)
@@ -402,7 +447,7 @@ void shell_f()
             }
             argv[j++] = NULL;
             execve(file_name, argv, NULL);
-            printf("#/> ");
+            printf("kshell #> ");
         }
     }
 

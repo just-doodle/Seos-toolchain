@@ -14,6 +14,11 @@ int get_pixel_idx(canvas_t * canvas, int x, int y)
 
 void set_pixel(canvas_t * canvas, uint32_t val, int x, int y)
 {
+    if(validate(canvas) != 1)   
+        return;
+    if(validate(canvas->framebuffer) != 1)
+        return;
+
     canvas->framebuffer[get_pixel_idx(canvas, x, y)] = val;
 }
 

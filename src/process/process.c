@@ -4,6 +4,10 @@
 #include "compositor.h"
 #include "keyboard.h"
 
+// TODO: Fix a bug which occurs when changing from one process to other
+// TODO: Add threading support
+// TODO: Make Preemptive multitasking system
+
 list_t *process_list;
 pcb_t *current_process;
 pcb_t *last_process;
@@ -32,6 +36,7 @@ void context_switch(registers_t *p_regs, context_t *n_regs)
         last_process->regs.esp = p_regs->useresp;
         last_process->regs.eflags = p_regs->eflags;
         last_process->regs.eip = p_regs->eip;
+        serialprintf("LAST_PROCESS_EIP: 0x%x\n", p_regs->eip);
         asm volatile("mov %%cr3, %0" : "=r"(last_process->regs.cr3));
     }
 
@@ -448,7 +453,10 @@ void process_kbh(uint8_t scancode)
         case 0x43:
             if(isPause)
             {
-                tmpfs_debug_list();
+                if(current_process->pid+1 != curr_pid-1)
+                    change_process(0);
+                else
+                    change_process(current_process->pid+1);
                 isPause = false;
             }
             break;

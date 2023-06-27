@@ -6,6 +6,7 @@
 #include "idt.h"
 #include "pit.h"
 #include "paging.h"
+#include "fat32.h"
 #include "kheap.h"
 #include "pmm.h"
 #include "cpuinfo.h"
@@ -299,11 +300,9 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     enable_interrupts();
 
-    ldprintf("Kernel", LOG_WARN, "The page directory of the processes will not be freed because of a bug. This will cause memory leak.");
-
     printtime();
 
-    //compositor_load_wallpaper("/wallpaper.bmp", 2);
+    compositor_load_wallpaper("/wallpaper.bmp", 2);
     init_vbox();
     init_shell();
 
@@ -369,28 +368,19 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     load_kernel_symbols(info);
 
-    symbol_t* s = get_kernel_symbol_by_name("kernelmain");
-    if(s != NULL)
+    if(info->mods_count != 0)
     {
-        serialprintf("%s: 0x%x, %dB\n", s->name, s->addr, s->size);
+        multiboot_module_t* mods = info->mods_addr;
+        alloc_region(kernel_page_dir, info->mods_addr, info->mods_addr + (sizeof(multiboot_module_t)*info->mods_count), 1, 1, 1);
+        alloc_region(kernel_page_dir, mods[0].cmdline, mods[0].cmdline + 256, 1, 1, 0);
+        ldprintf("KERNEL", LOG_INFO, "Got module %s", mods[0].cmdline);
+        alloc_region(kernel_page_dir, mods[0].mod_start, mods[0].mod_end, 1, 1, 1);
+        add_ramdisk(mods[0].mod_start, mods[0].mod_end, 0);
     }
 
-    s = get_kernel_symbol_by_name("serialprintf");
-    if(s != NULL)
-    {
-        serialprintf("%s: 0x%x, %dB\n", s->name, s->addr, s->size);
-    }
+    printf("\nSectorOS shell v2.0.0\nRun help to get the list of commands.\nkshell #> ");
 
-    printf("\nSectorOS shell v2.0.0\nRun help to get the list of commands.\n#/> ");
-
-    if((list_contain_str(mboot_cmd, "--load_modules")) != -1)
-    {
-        char** av = zalloc(sizeof(uint32_t)*2);
-        av[0] = "/test.ko";
-        av[1] = NULL;
-
-        load_module(av);
-    }
+    // init_fat32("/dev/apio1");
 
     while(1);
 }

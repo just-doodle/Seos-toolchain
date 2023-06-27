@@ -7,6 +7,8 @@
 
 uint32_t background_color = rgb(254, 128, 20);
 
+#define __COMPOSITOR_LOW_END__ 1
+
 VBE_MODE_INFO_t* mode = NULL;
 
 list_t* window_list;

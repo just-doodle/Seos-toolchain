@@ -8,6 +8,8 @@ vboxmanage internalcommands sethduuid ./sorhd.vdi 29a6336b-b33e-4c32-81e6-295100
 VBoxManage convertdd ext2_hda.img ext2.vdi --format VDI
 vboxmanage internalcommands sethduuid ./ext2.vdi 29a6336b-b33e-4c32-81e6-2951002bbeef
 
+VBoxManage setextradata SEOS "VBoxInternal/Devices/i8254/0/Config/PassthroughSpeaker" 1
+
 (killall vboxmanage && sleep 1) || true
 vboxmanage startvm SEOS -E VBOX_GUI_DBG_ENABLED=true
 

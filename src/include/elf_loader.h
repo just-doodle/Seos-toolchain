@@ -117,6 +117,16 @@
 #define ELF32_ST_TYPE(val)		((val) & 0xf)
 #define ELF32_ST_INFO(bind, type)	(((bind) << 4) + ((type) & 0xf))
 
+#define STB_LOCAL	0
+#define STB_GLOBAL	1
+#define STB_WEAK	2
+#define	STB_NUM		3
+#define STB_LOOS	10
+#define STB_GNU_UNIQUE	10
+#define STB_HIOS	12
+#define STB_LOPROC	13
+#define STB_HIPROC	15
+
 typedef uint16_t Elf32_Half;
 typedef uint32_t Elf32_Off;
 typedef uint32_t Elf32_Addr;
@@ -194,12 +204,6 @@ typedef struct elf_section_header
     Elf32_Word  sh_entsize;
 }elf_section_header_t;
 
-typedef struct elf_rela
-{
-  Elf32_Addr	r_offset;
-  Elf32_Word	r_info;
-  Elf32_Sword	r_addend;
-} elf_rela_t;
 
 typedef struct elf_rel_struct
 {

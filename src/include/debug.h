@@ -16,6 +16,7 @@ typedef struct symbol
   const char *name;
   uint32_t addr;
   uint32_t size;
+  uint32_t type;
 }symbol_t;
 
 typedef struct symoff
@@ -24,7 +25,10 @@ typedef struct symoff
     uint32_t offset;
 }symoff_t;
 
-#define ASSERT(b) ((b) ? (void)0 : kernel_panic(#b))
+#define STR2(a) #a
+#define STR(a) STR2(a)
+
+#define ASSERT(b) ((b) ? (void)0 : kernel_panic(__FILE__":"STR(__LINE__)": assertion \""#b"\" failed"))
 
 
 void panic(char* message, char* file);
