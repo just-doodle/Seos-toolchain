@@ -367,7 +367,7 @@ void stoc(size_t n, char* buf)
 
 char* stoc_r(size_t n)
 {
-    char* buffer = (char*)kmalloc(1024);
+    char* buffer = (char*)kmalloc(32);
 
     stoc(n, buffer);
     return buffer;

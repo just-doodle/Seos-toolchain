@@ -28,8 +28,20 @@ jobs:
     - name: Compile kernel
       run: make kernel
 
+    - name: Upload kernel
+      uses: actions/upload-artifact@v2
+      with: 
+        name: kernel
+        path: SectorOS-RW4.elf
+
     - name: Create ISO
       run: make iso
+
+    - name: Upload ISO
+      uses: actions/upload-artifact@v2
+      with: 
+        name: iso
+        path: SectorOS-RW4.iso
       
     - name: Create hdfile
       run: make sorhd
@@ -39,18 +51,6 @@ jobs:
     #   with: 
     #     name: sectoros_toolchain
     #     path: ~/toolchain.tar.xz
-
-    - name: Upload kernel
-      uses: actions/upload-artifact@v2
-      with: 
-        name: kernel
-        path: SectorOS-RW4.elf
-
-    - name: Upload ISO
-      uses: actions/upload-artifact@v2
-      with: 
-        name: iso
-        path: SectorOS-RW4.iso
 
     - name: Upload HDIMAGE
       uses: actions/upload-artifact@v2

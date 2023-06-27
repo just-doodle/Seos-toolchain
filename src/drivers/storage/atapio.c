@@ -1,5 +1,6 @@
 #include "atapio.h"
 #include "mbr.h"
+#include "logdisk.h"
 
 ata_pio_t ap0m;
 ata_pio_t ap0s;
@@ -81,10 +82,13 @@ void ata_pio_identify(ata_pio_t* ap)
     uint16_t * id = (uint16_t*)kmalloc(256);
     memset(id, 0, 256);
     uint8_t * id_buf = (uint8_t*)id;
+    //serialprintf("-------START ATA %d IDENTIFY--------\n", (ap->basePort == 0x1F0) ? (ap->master ? 0 : 1) : (ap->master ? 2 : 3));
     for(int i = 0; i < 256; i++)
     {
         id[i] = inw(ap->dataPort);
+        //serialprintf("%02x ", id_buf[i]);
     }
+    //serialprintf("\n-------END ATA %d IDENTIFY--------\n", (ap->basePort == 0x1F0) ? (ap->master ? 0 : 1) : (ap->master ? 2 : 3));
     printf("[ATA PIO] Device found\n");
     
     ap->channel = 1;
@@ -114,13 +118,10 @@ void ata_pio_identify(ata_pio_t* ap)
 
     ap->model[40] = 0;
 
-    printf("[ATA PIO] Model: %s\n", ap->model);
-    printf("[ATA PIO] Size: %s\n", stoc_r(ap->size));
-
-    printf("[ATA PIO] Device found on %s %s\n", ap->basePort == 0x1F0 ? "Primary" : "Secondary", ap->master ? "Master" : "Slave");
-    printf("[ATA PIO] Model: %s\n", ap->model);
-    printf("[ATA PIO] Size: %dB\n", ap->size);
-    printf("[ATA PIO] Signature: 0x%x\n", ap->signature);
+    ldprintf("ATA PIO", LOG_INFO, "Device found on %s %s", ap->basePort == 0x1F0 ? "Primary" : "Secondary", ap->master ? "Master" : "Slave");
+    ldprintf("ATA PIO", LOG_INFO, "Model: %s", ap->model);
+    ldprintf("ATA PIO", LOG_INFO, "Size: %s", stoc_r(ap->size*512));
+    ldprintf("ATA PIO", LOG_INFO, "Signature: 0x%x", ap->signature);
 
     FILE* f = ata_pio_GetVFSNode(ap);
 

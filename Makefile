@@ -259,7 +259,7 @@ stopTAP1:
 modules: $(MODULES)
 
 $(FILESDIR)/%.ko : $(SRCDIR)/modules/%.c
-	$(CC) -c -g -pedantic -ffreestanding -static -I$(INCLUDEDIR) -o $@ $<
+	$(PREFIX)/$(CC) -c -g -pedantic -ffreestanding -static -I$(INCLUDEDIR) -o $@ $<
 
 moduleclean:
 	rm $(MODULES)
