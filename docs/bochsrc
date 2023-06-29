@@ -1,4 +1,4 @@
-megs: 32
+megs: 512
 ata0-slave: type=cdrom, path=SEOS.iso, status=inserted
 com1: enabled=1, mode=file, dev=serial.log
 speaker: enabled=1, mode=sound
@@ -6,4 +6,4 @@ boot: cdrom
 mouse: enabled=0
 clock: sync=realtime
 cpu: ips=500000000
-display_library: x, options="gui_debug"
+#display_library: x, options="gui_debug"

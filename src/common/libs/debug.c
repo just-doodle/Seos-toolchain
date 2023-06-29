@@ -157,6 +157,8 @@ void load_kernel_symbols(multiboot_info_t* info)
 
     uint32_t j = 0;
 
+    char* buf = zalloc((func_num*256)+512);
+
     for(uint32_t i = 0; i < func_num; i++)
     {
         if(symtab[i].st_info & STT_FUNC)
@@ -165,15 +167,14 @@ void load_kernel_symbols(multiboot_info_t* info)
             kernel_symbols[j].size = symtab[i].st_size;
             kernel_symbols[j].name = strdup(&(strtab[symtab[i].st_name]));
             kernel_symbols[j].type = ELF32_ST_TYPE(symtab[i].st_info);
+            sprintf(buf+strlen(buf), "%08x %s\n", kernel_symbols[j].addr, kernel_symbols[j].name);
             j++;
         }
-        // else if(symtab[i].st_info & STT_OBJECT)
-        // {
-        //     kernelfs_add_variable("/proc/ksyms", strdup(&strtab[symtab[i].st_name]), symtab[i].st_value, symtab[i].st_size);
-        // }
     }
 
     n_kernel_symbols = j;
+    kernelfs_addcharf("/proc", "kallsyms", buf);
+    free(buf);
 }
 
 symbol_t* get_kernel_symbol_by_name(char* name)

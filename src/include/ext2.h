@@ -244,8 +244,9 @@ uint32_t ext2_write(FILE *file, uint32_t offset, uint32_t size, char *buffer);
 void ext2_open(FILE *file, uint32_t flags);
 void ext2_close(FILE* file);
 
-int isext2(char* dev);
+int ext2_test(char* dev);
 
-int init_ext2(char* dev, char* mountpoint);
+int ext2_mount(char* dev, char* mountpoint);
+void init_ext2();
 
 #endif /*__EXT2_H__*/

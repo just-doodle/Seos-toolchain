@@ -1,5 +1,6 @@
 #include "tmpfs.h"
 #include "rtc.h"
+#include "kernelfs.h"
 #include "timer.h"
 #include "mount.h"
 
@@ -9,7 +10,7 @@ int curr_idx;
 
 #include "logdisk.h"
 
-void init_tmpfs(char* mountpoint)
+int tmpfs_mount(char* device, char* mountpoint)
 {
     ldprintf("tmpfs", LOG_DEBUG, "Mounting to %s", mountpoint);
     tmpfs_t* fs = ZALLOC_TYPES(tmpfs_t);
@@ -34,17 +35,30 @@ void init_tmpfs(char* mountpoint)
     root->flags = FS_DIRECTORY;
 
     fs->bitmap = zalloc(sizeof(tmpfs_file_t)*TMPFS_MAX_FILES);
+    fs->mountpoint = strdup(mountpoint);
 
     if(mount_list != NULL)
     {
+        vfs_fsinfo_t* fsinfo = get_fs_by_name("tmpfs");
         mount_info_t* m = ZALLOC_TYPES(mount_info_t);
         m->device = "ram";
         m->mountpoint = strdup(mountpoint);
-        m->fs_type = FS_TYPE_TMPFS;
+        m->fs_type = fsinfo->uid;
         list_push(mount_list, m);
     }
 
     vfs_mount(mountpoint, fs->root);
+    return 0;
+}
+
+int tmpfs_test(char* device)
+{
+    return 0;
+}
+
+void init_tmpfs()
+{
+    vfs_register_fs("tmpfs", tmpfs_mount, tmpfs_test, FSINFO_FLAGS_NODEV|FSINFO_FLAGS_CUSTOM_MOUNT_ENTRY);
 }
 
 uint32_t tmpfs_read(FILE* f, uint32_t offset, uint32_t size, char* buffer)
@@ -137,6 +151,17 @@ FILE* tmpfs_finddir(FILE* parent, char* name)
     return NULL;
 }
 
+void tmpfs_update_kfs_entry(tmpfs_t* fs)
+{
+    char* j = zalloc((fs->n_files* 64)+512);
+    for(uint32_t i = 0; i < fs->n_files; i++)
+    {
+        sprintf(j+strlen(j), "%s %08x %d\n", fs->bitmap[i].self->name, fs->bitmap[i].buffer, fs->bitmap[i].current_size);
+    }
+    kernelfs_addcharf("/proc", "tmpfs", j);
+    free(j);
+}
+
 void tmpfs_create(FILE* parent, char* name, uint32_t permission)
 {
     tmpfs_t* fs = parent->device;
@@ -160,7 +185,8 @@ void tmpfs_create(FILE* parent, char* name, uint32_t permission)
     files[idx].self->mask = permission & 0xFFF;
     files[idx].self->creation_time = gettimeofday_seconds();
     fs->size += 100;
-    serialprintf("[TMPFS] File created \"/tmp/%s\"\n", name);
+    serialprintf("[TMPFS] File created \"/%s/%s\"\n", fs->mountpoint, name);
+    tmpfs_update_kfs_entry(fs);
     
 }
 

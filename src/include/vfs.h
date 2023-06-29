@@ -65,6 +65,7 @@ typedef int (*get_size_callback)(struct vfs_node *);
 typedef void (*chmod_callback)(struct vfs_node *, uint32_t mode);
 typedef char **(*listdir_callback)(struct vfs_node *);
 typedef struct vfs_node *(*vfs_mount_callback)(char *arg, char *mountpoint);
+typedef int (*vfs_unmount_callback)();
 
 typedef struct vfs_node
 {
@@ -117,7 +118,24 @@ typedef struct vfs_entry
     vfs_node *file;
 }vfs_entry;
 
+typedef int (*fsinfo_test)(char* device);
+
+#define FSINFO_FLAGS_NODEV (1<<0)
+#define FSINFO_FLAGS_CUSTOM_MOUNT_ENTRY (1<<1)
+#define FSINFO_FLAGS_NO_KERNELFS_ENTRY (1<<2)
+
+typedef struct vfs_fsinfo_struct
+{
+    char* name;
+    uint32_t uid;
+    vfs_mount_callback mount;
+    fsinfo_test test;
+    uint32_t flags;
+}vfs_fsinfo_t;
+
 typedef vfs_node FILE;
+
+extern list_t* filesystems;
 
 uint32_t vfs_getFileSize(vfs_node *file);
 vfs_node *get_mountpoint(char **path);
@@ -146,7 +164,9 @@ uint32_t find_fs(char* device);
 
 void init_vfs();
 void vfs_mount(char *path, vfs_node *local_root);
-void vfs_register_fs(char *name, vfs_mount_callback callm);
+void vfs_register_fs(char *name, vfs_mount_callback callm, fsinfo_test test, uint32_t flags);
+vfs_fsinfo_t* get_fs_by_uid(uint32_t uid);
+vfs_fsinfo_t* get_fs_by_name(char* name);
 void vfs_mountDev(char *mountpoint, vfs_node *node);
 void print_vfs_tree();
 char** vfs_listdir(char *name);

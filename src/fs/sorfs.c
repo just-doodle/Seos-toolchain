@@ -1,5 +1,6 @@
 #include "sorfs.h"
 #include "timer.h"
+#include "logdisk.h"
 
 void sorfs_readBlock(sorfs_t* fs, uint32_t blockNum, sorfs_block_t* block)
 {
@@ -54,6 +55,7 @@ void sorfs_writeBlockContent(sorfs_t* fs, sorfs_block_t* block, uint32_t offset,
         {
             block->size += req_size;
             fs->sb->heap_left -= req_size;
+            sorfs_rewrite_sb(fs);
         }
         else
         {
@@ -298,7 +300,7 @@ void sorfs_createFile(FILE* root, char* name, uint32_t permissions)
     }   
 }
 
-int isSORFS(char* devpath)
+int sorfs_test(char* devpath)
 {
     sorfs_t* fs = (sorfs_t*)kmalloc(sizeof(sorfs_t));
     fs->device = file_open(devpath, 0);
@@ -329,7 +331,7 @@ void debug_sorfs(sorfs_t* fs)
     }
 }
 
-int init_sorfs(char* dev_path, char* mountpath)
+int sorfs_mount(char* dev_path, char* mountpath)
 {
     sorfs_t* fs = kmalloc(sizeof(sorfs_t));
     fs->device = file_open(dev_path, OPEN_RDWR);
@@ -366,20 +368,18 @@ int init_sorfs(char* dev_path, char* mountpath)
     fs->sorfs_root->close = sorfs_close;
     fs->sorfs_root->create = sorfs_createFile;
     fs->sorfs_root->size = fs->sb->total_blocks * sizeof(sorfs_block_t);
-
     fs->sorfs_root->flags = FS_DIRECTORY;
 
     vfs_mount(mountpath, fs->sorfs_root);
 
-    sorfs_block_t* blo = ZALLOC_TYPES(sorfs_block_t);
-    sorfs_readBlock(fs, 1, blo);
-    uint32_t idx = sorfs_blockToNum(fs, blo);
-    serialprintf("[SORFS] idx: %d || %d\n", idx, 3);
-    ASSERT(idx == 1);
-
-    printf("[SORFS] Mounted %s at %s\n", dev_path, mountpath);
+    ldprintf("SORFS", LOG_DEBUG, "Device %s successfully mounted to %s.", dev_path, mountpath);
 
     return 0;
+}
+
+void init_sorfs()
+{
+    vfs_register_fs("sorfs", sorfs_mount, sorfs_test, 0);
 }
 
 DirectoryEntry* sorfs_readdir(FILE* node, uint32_t index)

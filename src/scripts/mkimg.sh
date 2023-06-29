@@ -1,7 +1,7 @@
 #!/bin/bash
 
-dd if=/dev/zero of=ext2_hda.img bs=1k count=100000 2> /dev/null
-fdisk ext2_hda.img << 'EOF'
+dd if=/dev/zero of=$1 bs=1k count=100000 2> /dev/null
+fdisk $1 << 'EOF'
 x
 c
 10

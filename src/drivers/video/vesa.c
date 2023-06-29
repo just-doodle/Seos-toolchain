@@ -1,8 +1,11 @@
 #include "vesa.h"
+#include "ifb.h"
 
 uint32_t current_mode;
 int isVesaInitialized = 0;
 VBE_MODE_INFO_t current_mode_info = {0};
+
+ifb_video_driver_t* vesa_driver = NULL;
 
 void vesa_memcpy24_to_32(uint24_t* dest, uint32_t* src, size_t size)
 {
@@ -69,8 +72,34 @@ void vesa_copy_framebuffer(void* fb)
     memcpy((void*)current_mode_info.phys_base, fb, (current_mode_info.pitch * current_mode_info.YResolution));
 }
 
-void vesa_change_mode(uint32_t width, uint32_t height, uint32_t bpp)
+int vesa_modeset(uint32_t width, uint32_t height, uint32_t bpp)
 {
+    return 1;
+}
+
+int vesa_draw(uint32_t* fb, uint32_t width, uint32_t height)
+{
+    // if(validate(current_mode_info.phys_base) != 1)
+    //     return 1;
+    fast_memcpy((void*)current_mode_info.phys_base, fb, (current_mode_info.pitch * current_mode_info.YResolution));
+    return 0;
+}
+
+ifb_video_info_t* vesa_get_modeinfo()
+{
+    if(validate(current_mode_info.phys_base) != 1)
+        return NULL;
+
+    ifb_video_info_t* info = ZALLOC_TYPES(ifb_video_info_t);
+    info->width = current_mode_info.XResolution;
+    info->height = current_mode_info.YResolution;
+    info->bpp = current_mode_info.bpp;
+    info->pitch = current_mode_info.pitch;
+    info->size = info->pitch * info->height;
+    info->fb = current_mode_info.phys_base;
+    info->pix = IFB_PIXELFORMAT_ARGB;
+
+    return info;
 }
 
 void init_vesa(multiboot_info_t *m)
@@ -82,6 +111,15 @@ void init_vesa(multiboot_info_t *m)
     alloc_region(kernel_page_dir, (uint32_t)framebuffer, (uint32_t)(framebuffer + vesa_getXResolution() * vesa_getYResolution() * 4), 1, 1, 1);
 
     pic_eoi(0x28);
+
+    vesa_driver = ZALLOC_TYPES(ifb_video_driver_t);
+    strcpy(vesa_driver->name, "vesa");
+    vesa_driver->draw = vesa_draw;
+    vesa_driver->get_modeinfo = vesa_get_modeinfo;
+    vesa_driver->modeset = 0;
+    vesa_driver->flags = 0;
+
+    register_video_driver(vesa_driver);
 
     isVesaInitialized = 1;
 

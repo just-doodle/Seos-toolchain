@@ -256,3 +256,13 @@
 * Added memory protection for some kernel functions
 * Added new shell commands
 * Updated run_vbox.sh to enable the passthrough of pc speaker
+
+29-06-2023: 04:50 PM IST v7.23.06.5NR
+* Implemented a subsystem for adding new filesystem
+* Implemented a subsystem for managing video drivers
+* Added documentation for modules
+* Added new scripts to create fat32 and ext2 images
+* Added more comments for sorfs
+* Added more entries to proc directory
+* Updated Makefile
+* Updated bochsrc

@@ -1,4 +1,5 @@
 #include "ext2.h"
+#include "modules.h"
 
 void ext2_DebugPrintSB(ext2_fs_t* fs)
 {
@@ -36,7 +37,7 @@ void ext2_DebugPrintInode(ext2_inode_t* inode, ext2_fs_t* fs)
     serialprintf("Flags: %d\n\n", inode->flags);
 }
 
-int isext2(char* dev)
+int ext2_test(char* dev)
 {
     ext2_fs_t* fs = ZALLOC_TYPES(ext2_fs_t);
     fs->block_size = EXT2_SUPERBLOCK_SIZE;
@@ -56,10 +57,11 @@ int isext2(char* dev)
         return 0;
     }
 
+    serialprintf("[EXT2] The given device does contain an ext2 filesystem\n");
     return 1;
 }
 
-int init_ext2(char* dev, char* mountpoint)
+int ext2_mount(char* dev, char* mountpoint)
 {
     ext2_fs_t* fs = ZALLOC_TYPES(ext2_fs_t);
     fs->block_size = EXT2_SUPERBLOCK_SIZE;
@@ -133,7 +135,7 @@ void ext2_write_inode_metadata(ext2_fs_t* fs, ext2_inode_t* inode, uint32_t inod
     ext2_read_disk_block(fs, inode_table_block + block_offset, block_buf);
     memcpy(block_buf + offset_in_block * fs->sb->inode_size, inode, fs->sb->inode_size);
     ext2_write_disk_block(fs, inode_table_block + block_offset, block_buf);
-    kfree(block_buf);
+    // kfree(block_buf);
 }
 
 uint32_t ext2_read_inode_filedata(ext2_fs_t *fs, ext2_inode_t *inode, uint32_t offset, uint32_t size, char *buf)
@@ -825,10 +827,10 @@ FILE* ext2_dirent_to_node(ext2_fs_t *fs, ext2_dirent_t *dir, ext2_inode_t *inode
     if ((inode->permission & EXT2_INODE_TYPE_DIR) == EXT2_INODE_TYPE_DIR)
     {
         res->flags |= FS_DIRECTORY;
-        res->mkdir = ext2_mkdir;
+        // res->mkdir = ext2_mkdir;
         res->finddir = ext2_finddir;
         res->unlink = ext2_unlink;
-        res->create = ext2_mkfile;
+        // res->create = ext2_mkfile;
         res->listdir = ext2_listdir;
         res->read = ext2_read;
         res->write = ext2_write;
@@ -929,10 +931,15 @@ void ext2_get_root(ext2_fs_t* fs)
     root->chmod   = ext2_chmod;
     root->open    = ext2_open;
     root->close   = ext2_close;
-    root->mkdir   = ext2_mkdir;
-    root->create  = ext2_mkfile;
+    // root->mkdir   = ext2_mkdir;
+    // root->create  = ext2_mkfile;
     root->listdir = ext2_listdir;
     root->finddir = ext2_finddir;
     root->unlink  = ext2_unlink;
     free(inode);
+}
+
+void init_ext2()
+{
+    vfs_register_fs("ext2", ext2_mount, ext2_test, 0);
 }

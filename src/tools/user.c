@@ -48,8 +48,19 @@ int main(int argc, char** argv)
     mount(NULL, "/tmpfs", "tmpfs", 0, 0);
     FILE* q = fopen("/tmpfs/test", "wb+");
     fwrite("Hello Kernel. It is i CommH!\n", 30, 1, q);
-    ls("/tmpfs");
     fclose(q);
+
+    FILE* p = fopen("/proc/tmpfs", "rb");
+    fseek(p, 0, SEEK_END);
+    uint32_t __p_sz = ftell(p);
+    fseek(p, 0, SEEK_SET);
+
+    char* bf = malloc(__p_sz);
+    fread(bf, __p_sz, 1, p);
+
+    printf("%s", bf);
+
+    fclose(p);
 
     return 0;
 }

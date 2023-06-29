@@ -1,4 +1,5 @@
 #include "modules.h"
+#include "kernelfs.h"
 
 uint32_t module_mapper_addr = MODULE_ALLOCATION_ADDRESS;
 uint32_t module_mapper_end = MODULE_ALLOCATION_END;
@@ -36,6 +37,23 @@ int module_exists(char* name)
 
     return 0;
 }
+
+// void update_module_kfs_entry()
+// {
+//     if(validate(modules) != 1)
+//         return;
+
+//     char* l = zalloc((list_size(modules) * 512));
+
+//     foreach(k, modules)
+//     {
+//         module_entry_t* e = k->val;
+//         if(validate(e))
+//             sprintf(l+strlen(l), "%06x %d %s\n", e->ptr, e->depended_by, e->info->name);
+//     }
+//     kernelfs_addcharf("/proc", "modules", "%s", l);
+//     free(l);
+// }
 
 elf_sym_t* get_module_symbol_by_name(char* name, elf_sym_t* stable, char* strtab, int nsyms)
 {
@@ -500,6 +518,8 @@ int load_module(char** argv)
         return -1;
     }
 
+    entry->depended_by = 0;
+
     for(uint32_t i = 0; i < head->e_shnum; i++)
     {
         if(shdr[i].sh_type != SHT_REL)
@@ -591,6 +611,7 @@ int load_module(char** argv)
     module_init init = init_func_sym->addr;
 
     ldprintf("Module loader", LOG_INFO, "Module %s successfully loaded.", info->name);
+    //update_module_kfs_entry();
     return (init)(argc, argv);
 }
 
@@ -646,6 +667,8 @@ int unload_module(char* name)
     if(ret == 0)
         ldprintf("Module unloader", LOG_INFO, "Module %s successfully unloaded.", name);
 
+    //update_module_kfs_entry();
+
     return ret;
 }
 
@@ -690,11 +713,11 @@ int force_unload_module(char* name)
 
 void print_list_modules()
 {
-    printf("Depended By  Name\n");
+    printf("Depended By  Address  Name\n");
     foreach(l, modules)
     {
         module_entry_t* e = l->val;
-        printf("%02d           %s\n", e->depended_by, e->info->name);
+        printf("%02d           %08x %s\n", e->depended_by, e->ptr, e->info->name);
     }
 }
 

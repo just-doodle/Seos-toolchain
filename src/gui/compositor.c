@@ -9,7 +9,7 @@ uint32_t background_color = rgb(254, 128, 20);
 
 #define __COMPOSITOR_LOW_END__ 1
 
-VBE_MODE_INFO_t* mode = NULL;
+ifb_video_info_t* mode = NULL;
 
 list_t* window_list;
 window_t* focused_window = NULL;
@@ -35,7 +35,7 @@ void fill(uint32_t color)
 {
     register int i = 0;
     register uint32_t* fb = (void*)screen_canvas.framebuffer;
-    register uint32_t fb_size = mode->pitch * mode->YResolution;
+    register uint32_t fb_size = (mode->pitch) * mode->height;
 
     for(i = 0; i < fb_size; i++)
         fb[i] = color;
@@ -252,27 +252,54 @@ void compositor_message_show(char* msg)
     notify_timer = 70;
 }
 
+int compositor_onModeset(ifb_video_info_t* vinfo)
+{
+    screen_canvas = canvas_create(vinfo->width, vinfo->height, ifb_getIFB());
+    set_fill_color(rgb(254, 128, 20));
+    draw_rect(&screen_canvas, 0, 0, vinfo->width, vinfo->height);
+
+    statusbar.r = rect_create(0, 0, vinfo->width, 16);
+    statusbar.region = realloc(statusbar.region, (vinfo->width * 32)*16);
+
+    wallpaper.r = rect_create(0, 16, vinfo->width, vinfo->height-16);
+    wallpaper.region = realloc(wallpaper.region, (vinfo->width*vinfo->bpp)*vinfo->height);
+
+    notify.r = rect_create(vinfo->width-(33*8), statusbar.r.height+2, (32*8), 100);
+    notify.region = realloc(notify.region, (notify.r.width*32)*notify.r.height);
+
+    mode = vinfo;
+
+    compositor_background_fill();
+    window_drawall();
+
+    return 0;
+}
+
 void init_compositor()
 {
-    mode = vesa_get_current_mode();
+    mode = video_get_modeinfo();
+    if(validate(mode) != 1)
+        return;
 
     window_list = list_create();
     notify_messages = list_create();
-    screen_canvas = canvas_create(mode->XResolution, mode->YResolution, ifb_getIFB());
+    screen_canvas = canvas_create(mode->width, mode->height, ifb_getIFB());
 
     set_fill_color(rgb(254, 128, 20));
-    draw_rect(&screen_canvas, 0, 0, mode->XResolution, mode->YResolution);
+    draw_rect(&screen_canvas, 0, 0, mode->width, mode->height);
 
-    statusbar.r = rect_create(0, 0, mode->XResolution, 16);
-    statusbar.region = zalloc((mode->XResolution * 32)*16);
+    statusbar.r = rect_create(0, 0, mode->width, 16);
+    statusbar.region = zalloc((mode->width * 32)*16);
 
-    wallpaper.r = rect_create(0, 16, mode->XResolution, mode->YResolution-16);
-    wallpaper.region = zalloc((mode->pitch)*mode->YResolution);
+    wallpaper.r = rect_create(0, 16, mode->width, mode->height-16);
+    wallpaper.region = zalloc((mode->pitch)*mode->height);
 
-    notify.r = rect_create(mode->XResolution-(33*8), statusbar.r.height+2, (32*8), 100);
+    notify.r = rect_create(mode->width-(33*8), statusbar.r.height+2, (32*8), 100);
     notify.region = zalloc((notify.r.width*32)*notify.r.height);
 
     update_statusbar("Hello, This is a test build on SEGUI.", 0, 0, 0xFFaaffff);
+
+    register_modeset_handler(compositor_onModeset);
 
     register_wakeup_callback(win_timer, 60/get_frequency());
 }
@@ -321,7 +348,7 @@ void window_close_by_pid(pid_t pid)
 
 void update_statusbar(char* msg, int s_col, int s_row, uint32_t color)
 {
-    canvas_t st = canvas_create(mode->XResolution, 16, statusbar.region);
+    canvas_t st = canvas_create(mode->width, 16, statusbar.region);
     set_fill_color(rgb(135, 6, 41));
     draw_rect(&st, 0, 0, st.width, st.height);
     set_font_color(color);
@@ -397,25 +424,6 @@ void window_change_title(window_t* w, char* title)
     canvas_t c = canvas_create(w->bar.r.width, w->bar.r.height, w->bar.region);
     draw_rect(&c, 0, 0, c.width, c.height);
     draw_text(&c, w->title, 1, 0);
-}
-
-void compositor_change_res(uint32_t width, uint32_t height, uint32_t bpp)
-{
-    screen_canvas = canvas_create(width, height, ifb_getIFB());
-    set_fill_color(rgb(254, 128, 20));
-    draw_rect(&screen_canvas, 0, 0, width, height);
-
-    statusbar.r = rect_create(0, 0, width, 16);
-    statusbar.region = realloc(statusbar.region, (width * 32)*16);
-
-    wallpaper.r = rect_create(0, 16, width, height-16);
-    wallpaper.region = realloc(wallpaper.region, (width*bpp)*height);
-
-    notify.r = rect_create(width-(33*8), statusbar.r.height+2, (32*8), 100);
-    notify.region = realloc(notify.region, (notify.r.width*32)*notify.r.height);
-
-    compositor_background_fill();
-    //window_drawall();
 }
 
 window_t* get_window(uint32_t x, uint32_t y)

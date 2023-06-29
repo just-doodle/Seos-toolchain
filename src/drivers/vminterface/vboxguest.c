@@ -1,5 +1,5 @@
 #include "vboxguest.h"
-#include "vesa.h"
+#include "ifb.h"
 #include "draw.h"
 
 static vbox_t vbox;
@@ -11,7 +11,7 @@ void vbox_do_modset()
 {
     outl(vbox.port, vbox.vdc_paddr);
     outl(vbox.port, vbox.vdc_paddr);
-    ifb_change_res(vbox.vdc->width, vbox.vdc->height, vbox.vdc->bpp);
+    video_modeset(vbox.vdc->width, vbox.vdc->height, vbox.vdc->bpp);
 }
 
 #define VMM_Event_Mouse (1 << 9)

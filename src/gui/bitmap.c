@@ -1,4 +1,5 @@
 #include "bitmap.h"
+#include "ifb.h"
 
 bitmap_t * bitmap_create(char * filename)
 {
@@ -54,12 +55,12 @@ void bitmap_display(char* file)
     if(b->height > vesa_getYResolution() || b->width > vesa_getXResolution())
     {
         serialprintf("Bitmap is too big! %dx%dx%d\n", b->width, b->height, b->bpp);
-        vesa_change_mode(b->width, b->height, b->bpp);
+        video_modeset(b->width, b->height, b->bpp);
     }
 
     if(b->height < vesa_getYResolution() || b->width < vesa_getXResolution())
     {
-        vesa_change_mode(b->width, b->height, b->bpp);
+        video_modeset(b->width, b->height, b->bpp);
     }
 
     uint32_t* framebuffer = (uint32_t*)vesa_getFramebuffer();

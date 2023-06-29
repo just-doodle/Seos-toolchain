@@ -116,7 +116,7 @@ int tcp_sample(TCPSocket_t* self, uint8_t* data, uint16_t len)
     return 1;
 }
 
-static char* mmap_get_type_str(uint32_t type)
+const char* mmap_get_type_str(uint32_t type)
 {
     switch(type)
     {
@@ -159,7 +159,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     init_pmm(1024 * info->mem_upper);
     init_paging();
     init_kheap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_MAX_ADDRESS);
-    init_logdisk(4*MB, LOG_ERR);
+    init_logdisk(4*MB, LOG_VERBOSE);
 
     ldprintf("kernel", LOG_INFO, "Running SectorOS-RW4 kernel %s", KERNEL_VERSION);
     ldprintf("multiboot", LOG_INFO, "cmdline: %s", info->cmdline);
@@ -175,7 +175,17 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     init_vfs();
     init_devfs();
+    init_kernelfs();
+
+    init_mount();
+    syscall_mount(NULL, "/proc", "kernelfs", 0, NULL);
     logdisk_mount();
+
+    load_kernel_symbols(info);
+
+    init_sorfs();
+    init_tmpfs();
+    init_ext2();
 
     mboot_cmd = str_split(((char*)info->cmdline), " ", NULL);
 
@@ -195,20 +205,17 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     alloc_region(kernel_page_dir, info->boot_device, info->boot_device+64, 1, 1, 0);
 
-    init_mount();
-    init_kernelfs("/proc");
-    init_kernelfs("/proc/ksyms");
-    kernelfs_add_variable("/proc", "filesystems", mount_filesystems, strlen(mount_filesystems));
     kernelfs_add_variable("/proc", "compiler", compiler, strlen(compiler));
     kernelfs_add_variable("/proc", "cmdline", info->cmdline, strlen(((char*)info->cmdline)));
     kernelfs_add_variable("/proc", "loader", info->boot_loader_name, strlen(((char*)info->boot_loader_name)));
     kernelfs_add_variable("/proc", "version", version_file, strlen(((char*)version_file)));
+
     syscall_mount(NULL, "/tmp", "tmpfs", 0, NULL);
 
     alloc_region(kernel_page_dir, info->mmap_addr, info->mmap_addr + info->mmap_length, 1, 1, 1);
     if(info->flags & MULTIBOOT_INFO_MEM_MAP)
     {
-        static char* mmap_type[6] = {
+        const char* mmap_type[6] = {
             "Unknown memory",
             "Free memory",
             "Reserved memory",
@@ -220,7 +227,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
         for(uint32_t i = 0; i < (info->mmap_length/sizeof(multiboot_memory_map_t)); i++)
         {
             char* tp = mmap_get_type_str(mmap[i].type);
-            serialprintf("[MMAP] 0x%08x | 0x%08x | %s (%d)\n", mmap[i].addr, mmap[i].len, mmap_type[mmap[i].type], mmap[i].type);
+            serialprintf("[MMAP] 0x%08x | 0x%08x | %s (%d)\n", mmap[i].addr, mmap[i].len, mmap_get_type_str(mmap[i].type), mmap[i].type);
         }
     }
 
@@ -233,9 +240,8 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     enable_sse();
     enable_fast_memcpy();
 
-    init_vesa(info);
-
     init_ifb();
+    init_vesa(info);
 
     init_compositor();
 
@@ -302,7 +308,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     printtime();
 
-    compositor_load_wallpaper("/wallpaper.bmp", 2);
+    //compositor_load_wallpaper("/wallpaper.bmp", 2);
     init_vbox();
     init_shell();
 
@@ -365,8 +371,6 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     #if __ENABLE_DEBUG_SYMBOL_LOADING__
     compositor_message_show("Warning:\nENABLE_DEBUG_SYMBOL_LOADING is enabled. This can impact performance when loading executables.");
     #endif
-
-    load_kernel_symbols(info);
 
     if(info->mods_count != 0)
     {

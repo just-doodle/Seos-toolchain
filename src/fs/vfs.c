@@ -2,10 +2,12 @@
 #include "sorfs.h"
 #include "logdisk.h"
 #include "process.h"
-#include "ext2.h"
+#include "kernelfs.h"
 
 tree_t *vfs_tree;
 vfs_node* vfs_root;
+
+list_t* filesystems = NULL;
 
 uint32_t vfs_getFileSize(vfs_node* node)
 {
@@ -86,6 +88,34 @@ void print_vfs_tree()
     print_vfstree_recur(vfs_tree->root, 0);
 }
 
+void vfs_register_fs(char *name, vfs_mount_callback callm, fsinfo_test test, uint32_t flags)
+{
+    if(validate(filesystems) != 1)
+        return;
+    vfs_fsinfo_t* fs = ZALLOC_TYPES(vfs_fsinfo_t);
+    fs->name = name;
+    fs->mount = callm;
+    fs->uid = rand();
+    fs->test = test;
+    fs->flags = flags;
+    list_push(filesystems, fs);
+
+    char* fs_f = zalloc((list_size(filesystems)*32)+2048);
+    foreach(k, filesystems)
+    {
+        vfs_fsinfo_t* fsi = k->val;
+        if(!(fsi->flags & FSINFO_FLAGS_NO_KERNELFS_ENTRY))
+        {
+            if((fsi->flags & FSINFO_FLAGS_NODEV))
+                sprintf((fs_f+strlen(fs_f)), "nodev   %s\n", fsi->name);
+            else
+                sprintf((fs_f+strlen(fs_f)), "        %s\n", fsi->name);
+        }
+    }
+    kernelfs_addcharf("/proc", "filesystems", fs_f);
+    free(fs_f);
+}
+
 uint32_t vfs_read(vfs_node *node, uint32_t offset, uint32_t size, char *buffer)
 {
     if (node && node->read && buffer != NULL)
@@ -96,23 +126,53 @@ uint32_t vfs_read(vfs_node *node, uint32_t offset, uint32_t size, char *buffer)
     return -1;
 }
 
+vfs_fsinfo_t* get_fs_by_uid(uint32_t uid)
+{
+    if(validate(filesystems) != 1)
+        return 0;
+
+    foreach(k, filesystems)
+    {
+        vfs_fsinfo_t* f = k->val;
+        if(f->uid == uid)
+            return f;
+    }
+
+    return NULL;
+}
+
+vfs_fsinfo_t* get_fs_by_name(char* name)
+{
+    if(validate(filesystems) != 1)
+        return 0;
+
+    foreach(k, filesystems)
+    {
+        vfs_fsinfo_t* f = k->val;
+        if(strcmp(f->name, name) == 0)
+            return f;
+    }
+
+    return NULL;
+}
+
 uint32_t find_fs(char* device)
 {
-    if(isSORFS(device) == 1)
-    {
-        ldprintf("vfs->find_fs", LOG_INFO, "Found SORFS filesystem on %s", device);
-        return FS_TYPE_SORFS;
-    }
-    else if(isext2(device) == 1)
-    {
-        ldprintf("vfs->find_fs", LOG_INFO, "Found EXT2 filesystem on %s", device);
-        return FS_TYPE_EXT2;
-    }
-    else
-    {
-        ldprintf("vfs->find_fs", LOG_ERR, "No filesystem found on %s", device);
+    if(validate(filesystems) != 1)
         return 0;
+
+    foreach(k, filesystems)
+    {
+        vfs_fsinfo_t* fs = k->val;
+        if(fs->test && fs->test(device))
+        {
+            ldprintf("vfs->find_fs", LOG_INFO, "Found %s filesystem on %s", fs->name, device);
+            return fs->uid;
+        }
     }
+
+    ldprintf("vfs->find_fs", LOG_ERR, "No filesystem found on %s", device);
+    return 0;
 }
 
 uint32_t vfs_write(vfs_node *file, uint32_t offset, uint32_t size, char *buffer)
@@ -377,6 +437,7 @@ void init_vfs()
 {
     ldprintf("vfs", LOG_INFO, "Initializing...");
     vfs_tree = tree_create();
+    filesystems = list_create();
     struct vfs_entry *root = (vfs_entry*)kmalloc(sizeof(struct vfs_entry));
     root->name = strdup("root");
     root->file = NULL;

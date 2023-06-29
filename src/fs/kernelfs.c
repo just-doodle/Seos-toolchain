@@ -20,6 +20,21 @@ kernelfs_node_t* kernelfs_get_node_from_file(FILE* f)
     return NULL;
 }
 
+kernelfs_node_t* kernelfs_get_node_from_name(kernelfs_t* fs, char* name)
+{
+    kernelfs_node_t* n = NULL;
+    foreach(l, fs->nodes)
+    {
+        n = l->val;
+        if(strcmp(n->name, name) == 0)
+        {
+            return n;
+        }
+    }
+
+    return NULL;
+}
+
 uint32_t kernelfs_read(FILE* f, uint32_t offset, uint32_t size, char* buffer)
 {
     if(validate(buffer) != 1)
@@ -162,7 +177,7 @@ DirectoryEntry* kernelfs_readdir(FILE* f, uint32_t idx)
     return d;
 }
 
-void init_kernelfs(char* mountpoint)
+int kernelfs_mount(char* device, char* mountpoint)
 {
     kernelfs_t* fs = ZALLOC_TYPES(kernelfs_t);
     fs->nodes = list_create();
@@ -178,13 +193,25 @@ void init_kernelfs(char* mountpoint)
     fs->root->readdir = kernelfs_readdir;
     if(validate(mount_list) == 1)
     {
+        vfs_fsinfo_t* fsinfo = get_fs_by_name("kernelfs");
         mount_info_t* m = ZALLOC_TYPES(mount_info_t);
         m->device = "kernel";
         m->mountpoint = strdup(mountpoint);
-        m->fs_type = FS_TYPE_KERNELFS;
+        m->fs_type = fsinfo->uid;
         list_push(mount_list, m);
     }
     vfs_mount(mountpoint, fs->root);
+    return 0;
+}
+
+int kernelfs_test(char* device)
+{
+    return 0;
+}
+
+void init_kernelfs()
+{
+    vfs_register_fs("kernelfs", kernelfs_mount, kernelfs_test, FSINFO_FLAGS_NODEV|FSINFO_FLAGS_CUSTOM_MOUNT_ENTRY);
 }
 
 void kernelfs_add_variable(const char* root, char* name, void* ptr, uint32_t size)
@@ -202,4 +229,36 @@ void kernelfs_add_variable(const char* root, char* name, void* ptr, uint32_t siz
     n->len = size;
     n->self = list_insert_front(fs->nodes, n);
     serialprintf("variable %s with size %d added to %s\n", name, size, root);
+}
+
+void kernelfs_addcharf(const char* root, char* name, char* fmt, ...)
+{
+    char* buf = zalloc(strlen(fmt) + 1024);
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(buf, NULL, fmt, args);
+    va_end(args);
+
+    char* path = zalloc(strlen(root)+strlen(path)+8);
+    sprintf(path, "%s/%s", root, name);
+    FILE* f = file_open(path, 0);
+    if(validate(f) == 1)
+    {
+        kernelfs_t* fs = f->device;
+        kernelfs_node_t* n = list_get_node_by_index(fs->nodes, f->inode_num)->val;
+        if(n->flags & KERNELFS_FLAGS_CAN_FREE)
+        {
+            free(n->ptr);
+        }
+        list_remove_node(fs->nodes, n->self);
+        free(n);
+    }
+    free(path);
+
+    char* v = strdup(buf);
+    free(buf);
+
+    kernelfs_add_variable(root, name, v, strlen(v));
+    kernelfs_node_t* n = kernelfs_get_node_from_name(file_open(root, 0)->device, name);
+    n->flags |= KERNELFS_FLAGS_CAN_FREE;
 }

@@ -34,7 +34,7 @@ OBJDUMP = i686-elf-objdump
 OBJCOPYFLAGS = --strip-debug --strip-unneeded
 
 QEMU=qemu-system-i386
-QEMUFLAGS=-cdrom $(ISOFILE) -m 4096M -boot d -hda sorhd -hdb fat32.img
+QEMUFLAGS=-cdrom $(ISOFILE) -m 4096M -boot d -hda sorhd -hdb hello.img
 QEMUDFLAGS= -s -S -serial file:k.log -daemonize -m 512M
 
 PROJECT=SectorOS-RW4
@@ -82,12 +82,12 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/common/libs/fast_memcpy.o \
 			$(SRCDIR)/common/libs/charbuffer.o \
 			$(SRCDIR)/fs/vfs.o \
-			$(SRCDIR)/fs/ext2.o \
 			$(SRCDIR)/fs/devfs.o \
 			$(SRCDIR)/fs/mount.o \
 			$(SRCDIR)/fs/sorfs.o \
 			$(SRCDIR)/fs/kernelfs.o \
 			$(SRCDIR)/fs/tmpfs.o \
+			$(SRCDIR)/fs/ext2.o \
 			$(SRCDIR)/fs/stat.o \
 			$(SRCDIR)/gui/draw.o \
 			$(SRCDIR)/gui/blend.o \
@@ -155,7 +155,7 @@ $(EXECUTABLE): $(OBJECTS)
 
 compile_objs: $(OBJECTS)
 
-$(ISOFILE): $(IMAGEFILE) $(EXECUTABLE) $(MODULES)
+$(ISOFILE): $(MODULES) $(IMAGEFILE) $(EXECUTABLE)
 	@echo '[GRUB] $@'
 	@mkdir -p $(PROJECT)/boot/grub
 	@cp $(EXECUTABLE) $(PROJECT)/boot/
@@ -224,7 +224,7 @@ forcerund: clean iso rund
 PHONY: clean kernel
 clean:
 	@echo 'Cleaning the source directory...'
-	@rm -f $(OBJECTS) $(EXECUTABLE) $(ISOFILE) sorfs $(IMAGEFILE)
+	@rm -f $(OBJECTS) $(EXECUTABLE) $(ISOFILE) sorfs $(IMAGEFILE) $(MODULES)
 
 clean_objs:
 	@rm -f $(OBJECTS) $(SRCDIR)

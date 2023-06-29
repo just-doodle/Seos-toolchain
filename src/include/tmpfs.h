@@ -27,11 +27,13 @@ typedef struct tmpfs_struct
     uint32_t size;
 
     FILE* root;
+    char* mountpoint;
 
     tmpfs_file_t* bitmap;
 }tmpfs_t;
 
-void init_tmpfs(char* mountpoint);
+int tmpfs_mount(char* device, char* mountpoint);
+void init_tmpfs();
 
 uint32_t tmpfs_read(FILE* f, uint32_t offset, uint32_t size, char* buffer);
 uint32_t tmpfs_write(FILE* f, uint32_t offset, uint32_t size, char* buffer);

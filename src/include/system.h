@@ -43,7 +43,7 @@ typedef uint32_t uintptr_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "7.23.06.4NR"
+#define KERNEL_VERSION "7.23.06.5NR"
 #define KERNEL_VERSION_CODENAME "Perfect Pomegranate"
 
 #define KERNEL_ENABLED_OPTIONS "\b"

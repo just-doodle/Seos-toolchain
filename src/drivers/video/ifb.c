@@ -3,6 +3,7 @@
 #include "logdisk.h"
 #include "stb_image_write.h"
 #include "limine_terminal/stb_image.h"
+#include "kernelfs.h"
 
 ifb_block_t *block = NULL;
 
@@ -23,7 +24,7 @@ uint32_t ifb_read(FILE* f, uint32_t offset, uint32_t size, char* buffer)
         return -1;
     if(buffer == NULL)
         return -1;
-    memcpy(buffer, ((void*)block->fb_addr)+offset, size);
+    memcpy(buffer, ((void*)block->buffer)+offset, size);
     return size;
 }
 
@@ -33,7 +34,7 @@ uint32_t ifb_write(FILE* f, uint32_t offset, uint32_t size, char* buffer)
         return -1;
     if(buffer == NULL)
         return -1;
-    memcpy(((void*)block->fb_addr)+offset, buffer, size);
+    memcpy(((void*)block->buffer)+offset, buffer, size);
     return size;
 }
 
@@ -69,10 +70,10 @@ int ifb_ioctl(FILE* f, int request, void *data)
     case 153:
         fb_info_t* i = data;
         i->bpp = block->bpp;
-        i->width = block->fb_width;
-        i->height = block->fb_height;
-        i->pitch = block->fb_pitch;
-        i->size = block->size;
+        i->width = block->info->width;
+        i->height = block->info->height;
+        i->pitch = block->info->pitch;
+        i->size = block->info->size;
         return 1;
         break;
     default:
@@ -81,69 +82,85 @@ int ifb_ioctl(FILE* f, int request, void *data)
     };
 }
 
-void init_ifb()
+void register_video_driver(ifb_video_driver_t* drv)
 {
-    if(useIFB == 1)
+    if(validate(drv) != 1)
+        return;
+
+    if(validate(block) != 1)
+        return;
+
+    if(validate(block->drivers) != 1)
+        return;
+
+    drv->self = list_insert_front(block->drivers, drv);
+
+    if(block->current_driver == NULL)
     {
-        block = ZALLOC_TYPES(ifb_block_t);
+        block->current_driver = drv;
 
-        VBE_MODE_INFO_t *mode = vesa_get_current_mode();
+        block->info = drv->get_modeinfo();
+        if(validate(block->info) != 1)
+        {
+            list_remove_node(block->drivers, drv->self);
+            drv->self = NULL;
+            return;
+        }
 
-        block->fb_width = mode->XResolution;
-        block->fb_height = mode->YResolution;
-        block->fb_bpp = mode->bpp;
-        block->fb_addr = mode->phys_base;
-        block->fb_pitch = mode->pitch;
-        block->fb_ptr = vesa_getFramebuffer();
-
-        block->size = block->fb_pitch * block->fb_height;
-        block->fb_size = block->fb_pitch * block->fb_height;
-        block->bpp = 32;
-
-        block->buffer = zalloc(block->size);
-
-        fbdev = ZALLOC_TYPES(FILE);
-        strcpy(fbdev->name, "fb");
-        fbdev->get_filesize = ifb_getfilesize;
-        fbdev->write = ifb_write;
-        fbdev->read = ifb_read;
-        fbdev->open = ifb_open;
-        fbdev->close = ifb_close;
+        block->buffer = kmalloc_a(block->info->size);
+        block->size = block->info->size;
+        block->bpp = block->info->bpp;
         fbdev->size = block->size;
-        fbdev->ioctl = ifb_ioctl;
-        fbdev->flags = FS_BLOCKDEVICE;
-
-        devfs_add(fbdev);
-
-        serialprintf("[ifb] intermediate framebuffer initialized.\nheight = %dpx\nwidth = %dpx\nbuffer size = %dB\nframebuffer address: 0x%06x\n", block->fb_height, block->fb_width, block->size, (uint32_t)block->buffer);
-
-        register_wakeup_callback(ifb_refresh, 60.0/get_frequency());
-        IFBinit = 1;
     }
-    else
-    {
-    }
+
+    kernelfs_addcharf("/proc", "fb", "Driver:\t%s\nXRes:\t%d\nYRes:\t%d\nBitsPerPixel:\t%d\nPitch:\t%d\nAddress:\t0x%x\n", block->current_driver->name, block->info->width, block->info->height, block->info->bpp, block->info->pitch, block->info->fb);
 }
 
-void ifb_change_res(uint32_t width, uint32_t height, uint32_t bpp)
+void init_ifb()
 {
-    if(useIFB == 1)
+    block = ZALLOC_TYPES(ifb_block_t);
+    block->drivers = list_create();
+    fbdev = ZALLOC_TYPES(FILE);
+    strcpy(fbdev->name, "fb");
+    fbdev->get_filesize = ifb_getfilesize;
+    fbdev->write = ifb_write;
+    fbdev->read = ifb_read;
+    fbdev->open = ifb_open;
+    fbdev->close = ifb_close;
+    fbdev->size = block->size;
+    fbdev->ioctl = ifb_ioctl;
+    fbdev->flags = FS_BLOCKDEVICE;
+    devfs_add(fbdev);
+    //ldprintf("IFB", LOG_DEBUG, "intermediate framebuffer initialized.\nheight = %dpx\nwidth = %dpx\nbuffer size = %dB\nframebuffer address: 0x%06x\n", block->info->height, block->info->width, block->size, (uint32_t)block->buffer);
+    register_wakeup_callback(ifb_refresh, 60.0/get_frequency());
+}
+
+int video_modeset(uint32_t width, uint32_t height, uint32_t bpp)
+{
+    if(validate(block) != 1)
+        return -1;
+    if(validate(block->current_driver) != 1)
+        return -1;
+    if(list_size(block->drivers) == 0)
+        return -1;
+    if(validate(block->info) != 1)
+        return -1;
+    if(!(block->current_driver->modeset))
+        return -1;
+
+    int ret = block->current_driver->modeset(width, height, bpp);
+
+    if(ret != 0)
     {
-        asm("cli");
-        VBE_MODE_INFO_t* minfo = vesa_get_current_mode();
-        free_region(kernel_page_dir, minfo->phys_base, minfo->phys_base + ((minfo->pitch * minfo->YResolution)), 1);
-        block->bpp = bpp;
-        block->fb_bpp = bpp;
-        block->fb_width = width;
-        block->fb_height = height;
-        block->fb_pitch = (width*bpp);
-        block->fb_size = block->fb_pitch * bpp/8;
-        block->buffer = realloc(block->buffer, block->fb_size);
-        block->size = block->fb_size;
-        alloc_region(kernel_page_dir, minfo->phys_base, minfo->phys_base + (block->fb_pitch * block->fb_height), 1, 1, 1);
-        compositor_change_res(width, height, bpp);
-        asm("sti");
+        ldprintf("IFB", LOG_ERR, "An error unknown occurred in the current video driver \"%s\" when trying to modeset (error code: %d)", block->current_driver->name, ret);
+        return ret;
     }
+    
+    block->info = block->current_driver->get_modeinfo();
+    if(block->current_driver->modeset)
+        return block->current_driver->onModeset(block->info);
+
+    return 0;
 }
 
 typedef struct
@@ -167,34 +184,39 @@ static void custom_stbi_write_mem(void *context, void *data, int size)
 
 void ifb_screenshot()
 {
-    if(useIFB == 1)
+    if(validate(block) != 1)
+        return;
+    if(validate(block->current_driver) != 1)
+        return;
+    if(list_size(block->drivers) == 0)
+        return;
+    if(validate(block->info) != 1)
+        return;
+    
+    asm("cli");
+    ldprintf("IFB", LOG_INFO, "Screenshotting..");
+    custom_stbi_mem_context ct;
+    uint8_t* simg = zalloc(2*MB);
+    ct.context = simg;
+    ct.last_pos = 0;
+    int r = stbi_write_jpg_to_func(custom_stbi_write_mem, &ct, block->info->width, block->info->height, STBI_rgb_alpha, argb_to_brga(block->buffer, block->info->width, block->info->height), __IFB_SCREENSHOT_COMPRESSION__);
+    ldprintf("IFB", LOG_INFO, "Size: %dB", ct.last_pos);
+    if(r == 1)
     {
-        asm("cli");
-        ldprintf("IFB", LOG_INFO, "Screenshotting..");
-        custom_stbi_mem_context ct;
-        uint8_t* simg = zalloc(2*MB);
-        ct.context = simg;
-        ct.last_pos = 0;
-
-        int r = stbi_write_jpg_to_func(custom_stbi_write_mem, &ct, block->fb_width, block->fb_height, STBI_rgb_alpha, argb_to_brga(block->buffer, block->fb_width, block->fb_height), __IFB_SCREENSHOT_COMPRESSION__);
-        ldprintf("IFB", LOG_INFO, "Size: %dB", ct.last_pos);
-        if(r == 1)
-        {
-            char* buf = zalloc(strlen("screenshot000.jpg"));
-            sprintf(buf, "/screenshot%d.jpg", scrshot_num);
-            scrshot_num++;
-            FILE* f = file_open(buf, OPEN_WRONLY);
-            free(buf);
-            if(f == NULL)
-                return;
-            vfs_write(f, 0, ct.last_pos, simg);
-            vfs_close(f);
-            free(simg);
-            ldprintf("IFB", LOG_INFO, "Screenshot saved to %s.", buf);
-            free(buf);
-        }
-        asm("sti");
+        char* buf = zalloc(strlen("screenshot000.jpg"));
+        sprintf(buf, "/screenshot%d.jpg", scrshot_num);
+        scrshot_num++;
+        FILE* f = file_open(buf, OPEN_WRONLY);
+        free(buf);
+        if(f == NULL)
+            return;
+        vfs_write(f, 0, ct.last_pos, simg);
+        vfs_close(f);
+        free(simg);
+        ldprintf("IFB", LOG_INFO, "Screenshot saved to %s.", buf);
+        free(buf);
     }
+    asm("sti");
 }
 
 void* ifb_getIFB()
@@ -204,25 +226,120 @@ void* ifb_getIFB()
 
 void ifb_refresh()
 {
-    if(useIFB == 1)
+    // if(validate(block) != 1)
+    //     return;
+    // if(validate(block->current_driver) != 1)
+    //     return;
+
+    if(block->info == NULL)
+        return;
+
+    int ret = block->current_driver->draw(block->buffer, block->info->width, block->info->height);
+
+    if(ret != 0)
     {
-        // for(register int y = 0; y < block->fb_height; y++)
-        //     for(register int x = 0; x < block->fb_width; x++)
-        //         block->fb_ptr[x + y * block->fb_width] = block->buffer[x + y * block->fb_width];
-        vesa_copy_framebuffer(block->buffer);
+        ldprintf("IFB", LOG_ERR, "An unknown error has been occurred in the current video driver when drawing frame");
+        return;
     }
 }
 
-void toggle_ifb()
+uint32_t video_get_width()
 {
-    int lj = useIFB;
-    useIFB = !useIFB;
-    if(lj == 0)
-    {
-        if(IFBinit == 0)
-            init_ifb();
-    }
-    else
-    {
-    }
+    if(validate(block) != 1)
+        return 0;
+    if(validate(block->current_driver) != 1)
+        return 0;
+    if(list_size(block->drivers) == 0)
+        return 0;
+    if(validate(block->info) != 1)
+        return 0;
+    if(!(block->current_driver->get_modeinfo))
+        return 0;
+
+    block->info = block->current_driver->get_modeinfo();
+    if(validate(block->info) != 1)
+        return 0;
+
+    return block->info->width;
+}
+
+uint32_t video_get_height()
+{
+    if(validate(block) != 1)
+        return 0;
+    if(validate(block->current_driver) != 1)
+        return 0;
+    if(list_size(block->drivers) == 0)
+        return 0;
+    if(validate(block->info) != 1)
+        return 0;
+    if(!(block->current_driver->get_modeinfo))
+        return 0;
+
+    block->info = block->current_driver->get_modeinfo();
+    if(validate(block->info) != 1)
+        return 0;
+
+    return block->info->height;
+}
+
+uint32_t video_get_bpp()
+{
+    if(validate(block) != 1)
+        return 0;
+    if(validate(block->current_driver) != 1)
+        return 0;
+    if(list_size(block->drivers) == 0)
+        return 0;
+    if(validate(block->info) != 1)
+        return 0;
+    if(!(block->current_driver->get_modeinfo))
+        return 0;
+
+    block->info = block->current_driver->get_modeinfo();
+    if(validate(block->info) != 1)
+        return 0;
+
+    return block->info->bpp;
+}
+
+ifb_video_info_t* video_get_modeinfo()
+{
+    if(validate(block) != 1)
+        return NULL;
+    if(validate(block->current_driver) != 1)
+        return NULL;
+    if(list_size(block->drivers) == 0)
+        return NULL;
+    if(!(block->current_driver->get_modeinfo))
+        return NULL;
+
+    return block->current_driver->get_modeinfo();
+}
+
+void register_modeset_handler(ifb_video_onModeset onModeset)
+{
+    if(validate(block) != 1)
+        return;
+    if(validate(block->current_driver) != 1)
+        return;
+    if(list_size(block->drivers) == 0)
+        return;
+
+    block->current_driver->onModeset = onModeset;
+    return;
+}
+
+int video_draw(uint32_t* fb)
+{
+    if(validate(block) != 1)
+        return -1;
+    if(validate(block->current_driver) != 1)
+        return -1;
+    if(list_size(block->drivers) == 0)
+        return -1;
+    if(!(block->current_driver->draw))
+        return -1;
+
+    return block->current_driver->draw(fb, block->info->width, block->info->height);
 }
