@@ -22,7 +22,7 @@ void init_tss(uint32_t idx, uint32_t kss, uint32_t kesp)
     kernel_tss.gs = 0x13;
     
     uint32_t cr3;
-    asm volatile("mov %%cr3, %0" : "=r" (cr3));
+    ASM_FUNC("mov %%cr3, %0" : "=r" (cr3));
     kernel_tss.cr3 = cr3;
 
     serialprintf("[TSS] Flushing TSS...\n");

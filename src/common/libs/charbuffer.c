@@ -105,10 +105,10 @@ void charbuffer_waitchar(charbuffer_t* b, char c)
 {
     if(b == NULL)
         return;
-    asm("sti");
+    ASM_FUNC("sti");
     while(b->buffer[b->rw_ptr-1] != c)
     {
-        asm("pause");
+        ASM_FUNC("pause");
     }
 }
 

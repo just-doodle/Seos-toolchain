@@ -1,7 +1,7 @@
 #ifndef __USER_SYSCALL_H__
 #define __USER_SYSCALL_H__
 
-#define MAX_SYSCALLS 45
+#define MAX_KERNEL_SYSCALLS 45
 
 #define SYSCODE_PUTC 0x00
 #define SYSCODE_EXIT 0x01

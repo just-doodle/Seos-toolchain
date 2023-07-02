@@ -23,7 +23,7 @@ ul_t calculate_tsc()
     if(count <= 1)
         return 0;
 
-    asm ("subl %2, %0\n"
+    ASM_FUNC ("subl %2, %0\n"
 	    "sbbl %3,%1":"=a" (end_low),"=d"(end_high):"g"(st_low),"g"(st_high),"0"(end_low),"1"(end_high));
     if(end_high != 0)
     {
@@ -34,6 +34,6 @@ ul_t calculate_tsc()
     {
         return 0;
     }
-	asm ("divl %2":"=a"(end_low),"=d"(end_high):"r"(end_low),"0"(0),"1"(calibrate_time));
+	ASM_FUNC ("divl %2":"=a"(end_low),"=d"(end_high):"r"(end_low),"0"(0),"1"(calibrate_time));
 	return end_low;
 }

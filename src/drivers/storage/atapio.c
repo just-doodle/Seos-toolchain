@@ -270,7 +270,7 @@ uint32_t ata_pio_write(vfs_node* node, uint32_t offset, uint32_t size, char* buf
 
 uint32_t ata_pio_read(vfs_node* node, uint32_t offset, uint32_t size, char* buffer)
 {
-    asm("cli");
+    ASM_FUNC("cli");
     ata_pio_t* ap = (ata_pio_t*)node->device;
     uint32_t start = offset / ap->bytesPerSector;
     uint32_t start_offset = offset % ap->bytesPerSector;
@@ -304,7 +304,7 @@ uint32_t ata_pio_read(vfs_node* node, uint32_t offset, uint32_t size, char* buff
         total = total + read_size;
         counter++;
     }
-    asm("sti");
+    ASM_FUNC("sti");
     return total;
 }
 

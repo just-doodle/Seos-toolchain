@@ -63,7 +63,7 @@ void dhcp_request(uint8_t * request_ip)
     udp_send_packet(dst_ip, 68, 67, packet, sizeof(dhcp_packet_t));
 }
 
-void dhcp_udp_callback(ipv4_addr_t* srcaddr, uint8_t* data, uint32_t len)
+void dhcp_udp_callback(uint8_t* srcaddr, uint8_t* data, uint32_t len)
 {
     dhcp_packet_t * packet = (dhcp_packet_t*)data;
     dhcp_handle_packet(packet);

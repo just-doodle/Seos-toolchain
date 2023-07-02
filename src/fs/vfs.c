@@ -428,8 +428,8 @@ vfs_node *file_open(char *file_name, uint32_t flags)
         }
     }
     vfs_open(nextnode, flags);
-    kfree(save);
-    kfree(free_filename);
+    free(save);
+    free(free_filename);
     return nextnode;
 }
 
@@ -438,7 +438,7 @@ void init_vfs()
     ldprintf("vfs", LOG_INFO, "Initializing...");
     vfs_tree = tree_create();
     filesystems = list_create();
-    struct vfs_entry *root = (vfs_entry*)kmalloc(sizeof(struct vfs_entry));
+    vfs_entry *root = (vfs_entry*)zalloc(sizeof(vfs_entry));
     root->name = strdup("root");
     root->file = NULL;
     tree_insert(vfs_tree, NULL, root);

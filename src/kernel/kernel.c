@@ -96,9 +96,9 @@ list_t* mboot_cmd;
 
 int no_process = 0;
 
-void sample_callback(ipv4_addr_t* addr, uint8_t* data, uint32_t len)
+void sample_callback(uint8_t* addr, uint8_t* data, uint32_t len)
 {
-    ldprintf("kernel", LOG_DEBUG, "DATA FROM %d.%d.%d.%d:\n\t%s\n", addr->addr[0], addr->addr[1], addr->addr[2], addr->addr[3], data);
+    ldprintf("kernel", LOG_DEBUG, "DATA FROM %d.%d.%d.%d:\n\t%s\n", addr[0], addr[1], addr[2], addr[3], data);
 }
 
 int tcp_sample(TCPSocket_t* self, uint8_t* data, uint16_t len)
@@ -269,7 +269,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     init_stdout();
 
     uint32_t esp;
-    asm volatile("mov %%esp, %0" : "=r"(esp));
+    ASM_FUNC("mov %%esp, %0" : "=r"(esp));
     if(no_process == 0)
         tss_set_kernel_stack(0x10, esp);
 
@@ -318,8 +318,8 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     {
         init_networkInterfaceManager();
         init_loopback();
-        init_rtl8139();
-        init_pcnet(); //! Does not work
+        //init_rtl8139();
+        //init_pcnet(); //! Does not work
 
         switch_interface(0);
 

@@ -19,7 +19,7 @@ extern uint16_t pit_frequency;
 
 void init_pit();
 void pit_callback(registers_t *regs);
-void pit_chfrequency(uint16_t hz);
+void pit_chfrequency(uint32_t hz);
 void sleep(uint32_t ms);
 uint32_t get_ticks();
 

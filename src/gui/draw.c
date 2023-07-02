@@ -163,6 +163,14 @@ uint32_t* argb_to_brga(uint32_t* src, uint32_t width, uint32_t height)
     return src;
 }
 
+void control_brightness(uint8_t* fb, uint32_t sz, double brightness)
+{
+    for(uint32_t i = 0; i < sz; i++)
+    {
+        fb[i] = ((uint8_t)(fb[i]*brightness) & 0xFF);
+    }
+}
+
 uint32_t bioscolor_to_vesa(uint32_t vesa)
 {
     uint32_t ret = 0;

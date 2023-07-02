@@ -30,14 +30,14 @@ void init_pit()
 
 void pit_callback(registers_t* regs)
 {
-    asm("cli");
-    //asm("incl %0": "+r"(ticks));
+    ASM_FUNC("cli");
+    //ASM_FUNC("incl %0": "+r"(ticks));
     // memcpy(&saved_context, regs, sizeof(registers_t));
     timer_interface_call();
-    asm("sti");
+    ASM_FUNC("sti");
 }
 
-void pit_chfrequency(uint16_t hz)
+void pit_chfrequency(uint32_t hz)
 {
     pit_frequency = hz;
     uint8_t l = lobyte((PIT_CHANNEL0_FREQUENCY/pit_frequency));

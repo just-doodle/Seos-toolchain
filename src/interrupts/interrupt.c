@@ -27,12 +27,12 @@ void isr_handler(registers_t* regs)
 
 void enable_interrupts()
 {
-    asm volatile("sti");
+    ASM_FUNC("sti");
     printf("[ISR] Interrupts enabled\n");
 }
 
 void disable_interrupts()
 {
-    asm volatile("cli");
+    ASM_FUNC("cli");
     printf("[ISR] Interrupts disabled\n");
 }

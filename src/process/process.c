@@ -37,7 +37,7 @@ void context_switch(registers_t *p_regs, context_t *n_regs)
         last_process->regs.eflags = p_regs->eflags;
         last_process->regs.eip = p_regs->eip;
         serialprintf("LAST_PROCESS_EIP: 0x%x\n", p_regs->eip);
-        asm volatile("mov %%cr3, %0" : "=r"(last_process->regs.cr3));
+        ASM_FUNC("mov %%cr3, %0" : "=r"(last_process->regs.cr3));
     }
 
     if (((page_directory_t *)n_regs->cr3) != NULL)

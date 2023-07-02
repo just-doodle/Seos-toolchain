@@ -41,7 +41,7 @@ void set_ip(uint8_t* ip);
 
 void iptoa(uint64_t ipaddr, uint8_t* ip);
 
-uint16_t checksum(uint16_t * buffer, int size);
+uint16_t calculate_checksum(const void* data, size_t length);
 
 uint32_t ipatoh(uint8_t ip[4]);
 

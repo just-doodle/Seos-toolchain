@@ -79,4 +79,6 @@ ifb_video_info_t* video_get_modeinfo();
 int video_modeset(uint32_t width, uint32_t height, uint32_t bpp);
 int video_draw(uint32_t* fb);
 
+void ifb_refresh();
+
 #endif /*__IFB_H__*/

@@ -266,3 +266,11 @@
 * Added more entries to proc directory
 * Updated Makefile
 * Updated bochsrc
+
+02-07-2023: 04:50 PM IST v7.23.07.1NR
+* Implemented a function to add syscalls from modules
+* Added few optimizations
+* Added a new module `ICMP` for managing icmp packets
+* Implemented a function to register new network protocols over IPv4
+* Fixed some warnings
+* Added options to grub to boot OS for enable networking

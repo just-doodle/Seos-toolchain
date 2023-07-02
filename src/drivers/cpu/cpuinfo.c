@@ -13,7 +13,7 @@ ul_t calculate_cpuspeed()
 		printf("[CPUINFO] Detected cpu speed: %d.%d Mhz\n",cpu_khz / 1000, cpu_khz % 1000);
 		eax=0;
 		edx= 1000000;
-		asm ("divl %2" : "=a"(cpu_khz),"=d"(edx):"r"(tsc),"0"(eax),"1"(edx));
+		ASM_FUNC ("divl %2" : "=a"(cpu_khz),"=d"(edx):"r"(tsc),"0"(eax),"1"(edx));
 		return cpu_khz/1000000;
     }
     else

@@ -8,7 +8,7 @@ int num_nodes = 0;
 
 FILE* devfs_getrootnode()
 {
-    FILE* rnode = (FILE*)kmalloc(sizeof(FILE));
+    FILE* rnode = (FILE*)zalloc(sizeof(FILE));
     strcpy(rnode->name, "devfs");
     rnode->device = NULL;
     rnode->inode_num = 0;
@@ -74,15 +74,13 @@ void devfs_add(FILE* node)
     nodes[num_nodes] = *node;
     nodes[num_nodes].inode_num = num_nodes;
     num_nodes++;
-    char* mountpoint = (char*)kcalloc(sizeof(char), 128);
+    char* mountpoint = (char*)zalloc(sizeof(char)*128);
     memset(mountpoint, 0, 128);
-    strcpy(mountpoint, "/dev");
-    strcat(mountpoint, "/");
-    strcat(mountpoint, node->name);
+    sprintf(mountpoint, "/dev/%s", node->name);
     printf("Mounting on %s\n", mountpoint);
 
     vfs_mountDev(mountpoint, node);
-    kfree(mountpoint);
+    // kfree(mountpoint);
 }
 
 void devfs_unlink(FILE* parent, char* name)

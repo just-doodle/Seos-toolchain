@@ -27,11 +27,13 @@ typedef unsigned long ul_t;
 typedef uint32_t uintptr_t;
 
 
-#define khalt asm("cli"); \
-            asm("hlt");
+#define khalt ASM_FUNC("cli"); \
+            ASM_FUNC("hlt");
 
 #define KERNEL_BASE 0xC0000000
 #define KERNEL_END  k_end
+
+#define ASM_FUNC(...) __asm__ __volatile__(__VA_ARGS__)
 
 #define NULL (void*)0
 /*
@@ -43,7 +45,7 @@ typedef uint32_t uintptr_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "7.23.06.5NR"
+#define KERNEL_VERSION "7.23.07.1NR"
 #define KERNEL_VERSION_CODENAME "Perfect Pomegranate"
 
 #define KERNEL_ENABLED_OPTIONS "\b"

@@ -30,6 +30,7 @@ typedef struct symoff
 
 #define ASSERT(b) ((b) ? (void)0 : kernel_panic(__FILE__":"STR(__LINE__)": assertion \""#b"\" failed"))
 
+#define KDEBUG_ADD_LABEL(id) serialprintf("DEBUG: "__FILE__":"STR(__LINE__)": %s()"": "#id" label executed\n", __FUNCTION__);
 
 void panic(char* message, char* file);
 void kernel_panic(const char* message);

@@ -88,4 +88,7 @@ void window_close_by_pid(pid_t pid);
 void maximize(window_t* w);
 void minimize(window_t* w);
 
+void compositor_background_fill();
+void window_drawall();
+
 #endif /*__COMPOSITOR_H__*/

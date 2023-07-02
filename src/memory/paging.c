@@ -186,20 +186,20 @@ void switch_page_dir(page_directory_t* dir, uint32_t paddr)
         t = (uint32_t)virt2phys(TEMP_PAGE_DIR, dir);
     else
         t = (uint32_t)dir;
-    asm volatile("mov %0, %%cr3" :: "r"(t));
+    ASM_FUNC("mov %0, %%cr3" :: "r"(t));
 }
 
 void enable_paging()
 {
     uint32_t cr0, cr4;
 
-    asm volatile("mov %%cr4, %0" : "=r"(cr4));
+    ASM_FUNC("mov %%cr4, %0" : "=r"(cr4));
     CLEAR_PSEBIT(cr4);
-    asm volatile("mov %0, %%cr4" :: "r"(cr4));
+    ASM_FUNC("mov %0, %%cr4" :: "r"(cr4));
 
-    asm volatile("mov %%cr0, %0" : "=r"(cr0));
+    ASM_FUNC("mov %%cr0, %0" : "=r"(cr0));
     SET_PGBIT(cr0);
-    asm volatile("mov %0, %%cr0" :: "r"(cr0));
+    ASM_FUNC("mov %0, %%cr0" :: "r"(cr0));
 
     paging_enabled = 1;
 }
@@ -311,8 +311,8 @@ void page_fault_handler(registers_t* regs)
     printf("Page fault:\n");
     uint32_t faulting_addr;
     uint32_t faulting_vaddr;
-    asm volatile("mov %%cr2, %0" : "=r" (faulting_addr));
-    asm volatile("mov %%ebx, %0" : "=r" (faulting_vaddr));
+    ASM_FUNC("mov %%cr2, %0" : "=r" (faulting_addr));
+    ASM_FUNC("mov %%ebx, %0" : "=r" (faulting_vaddr));
     uint32_t present = regs->ecode & 0x1;
     uint32_t rw = regs->ecode & 0x2;
     uint32_t user = regs->ecode & 0x4;

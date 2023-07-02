@@ -82,7 +82,7 @@ void init_pcnet()
 
         uint32_t irq_num = pci_read(pci_dev, PCI_OFF_INTERRUPT_LINE);
         register_interrupt_handler(0x20+irq_num, pcnet_handler);
-        asm("sti");
+        ASM_FUNC("sti");
 
         outw(device->RegAddr_port, 1);
         outw(device->RegData_port, (uint32_t)virt2phys(kernel_page_dir ,&device->initblock) & 0xFFFF);

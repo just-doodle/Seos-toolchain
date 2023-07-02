@@ -303,7 +303,7 @@ char *strdup(const char *src)
     if(validate(src) != 1)
         return NULL;
     int len = strlen(src) + 1;
-    char *dst = (char*)kmalloc(len);
+    char *dst = (char*)zalloc(len);
     memcpy(dst, src, len);
     return dst;
 }

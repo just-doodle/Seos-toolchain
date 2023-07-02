@@ -46,7 +46,7 @@ char* get_socketState(TCPSocket_t* socket)
 uint32_t prev_seq = 0;
 TCPSocket_t* prev_socket = 0;
 
-void tcp_handle_packet(uint8_t* packet, ipv4_addr_t * src_addr, ipv4_addr_t* dst_addr, uint32_t len)
+void tcp_handle_packet(uint8_t* packet, uint8_t* src_addr, uint8_t* dst_addr, uint32_t len)
 {
     if(len < 20)
         return;
@@ -73,16 +73,16 @@ void tcp_handle_packet(uint8_t* packet, ipv4_addr_t * src_addr, ipv4_addr_t* dst
     {
         if(socket == 0 && i != 0)
             break;
-        if (t_sockets[i]->localPort == h->dstPort && (t_sockets[i]->localIP) == ntohl(ipatoh(dst_addr->addr)) && t_sockets[i]->state == LISTEN && (((f_ntohl) & (SYN | ACK)) == SYN))
+        if (t_sockets[i]->localPort == h->dstPort && (t_sockets[i]->localIP) == ntohl(ipatoh(dst_addr)) && t_sockets[i]->state == LISTEN && (((f_ntohl) & (SYN | ACK)) == SYN))
         {
             socket = (t_sockets[i]);
         }
-        else if (t_sockets[i]->localPort == h->dstPort && (t_sockets[i]->localIP) == ntohl(ipatoh(dst_addr->addr)) && t_sockets[i]->remPort == h->srcPort && t_sockets[i]->remIP == ipatoh(src_addr->addr))
+        else if (t_sockets[i]->localPort == h->dstPort && (t_sockets[i]->localIP) == ntohl(ipatoh(dst_addr)) && t_sockets[i]->remPort == h->srcPort && t_sockets[i]->remIP == ipatoh(src_addr))
         {
             socket = (t_sockets[i]);
         }
         ldprintf("TCP", LOG_DEBUG, "%d ||| lp:%d == dp:%d ||| lip:0x%x == dip:0x%x ||| rp:%d == sp:%d ||| rip:0x%x == sip:0x%x\n", i, \
-        t_sockets[i]->localPort, h->dstPort, t_sockets[i]->localIP, ipatoh(dst_addr->addr), t_sockets[i]->remPort, h->srcPort, t_sockets[i]->remIP, ipatoh(src_addr->addr));
+        t_sockets[i]->localPort, h->dstPort, t_sockets[i]->localIP, ipatoh(dst_addr), t_sockets[i]->remPort, h->srcPort, t_sockets[i]->remIP, ipatoh(src_addr));
     }
 
     int reset = 0;
@@ -222,9 +222,9 @@ void tcp_handle_packet(uint8_t* packet, ipv4_addr_t * src_addr, ipv4_addr_t* dst
             TCPSocket_t socket2;
             socket2.state = CLOSED;
             socket2.remPort = h->srcPort;
-            socket2.remIP = ipatoh(src_addr->addr);
+            socket2.remIP = ipatoh(src_addr);
             socket2.localPort = h->dstPort;
-            socket2.localIP = ipatoh(dst_addr->addr);
+            socket2.localIP = ipatoh(dst_addr);
             socket2.seqNum = ntohl(h->ackNum);
             socket2.ackNum = ntohl(h->seqNum) + 1;
             tcp_send(&socket2, 0, 0, RST);
@@ -363,4 +363,5 @@ void init_tcp()
         t_sockets[i] = 0;
     numSockets = 0;
     freePorts = TCP_RESERVED_PORTS+1;
+    register_ipv4_protocol(tcp_handle_packet, "UDP", PROTOCOL_TCP);
 }

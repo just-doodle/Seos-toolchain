@@ -8,7 +8,7 @@
 
 #define MAX_SOCKETS 0xFFFF
 
-typedef void (*udp_callback_t)(ipv4_addr_t *addr, uint8_t *data, uint32_t len);
+typedef void (*udp_callback_t)(uint8_t* addr, uint8_t *data, uint32_t len);
 
 typedef struct udp_socket
 {
@@ -29,7 +29,7 @@ void register_udp_callback(udp_callback_t callback, uint16_t port);
 
 void udp_send_packet(uint8_t * dst_ip, uint16_t src_port, uint16_t dst_port, void * data, int len);
 
-void udp_handle_packet(udp_packet_t * packet, ipv4_addr_t * src_addr, ipv4_addr_t* dst_addr, uint32_t len);
+void udp_handle_packet(udp_packet_t * packet, uint8_t* src_addr, uint8_t* dst_addr, uint32_t len);
 
 void init_udp();
 

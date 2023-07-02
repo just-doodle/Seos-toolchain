@@ -69,7 +69,7 @@ void init_stdout()
 
 uint32_t stdout_write(FILE* f, uint32_t off, size_t sz, char* buffer)
 {
-    serialprintf("%s", buffer);
+    //serialprintf("%s", buffer);
     if(/*memcmp((uint8_t*)f, (uint8_t*)stdout_f, sizeof(FILE)) == 0*/1)
     {
         printf("%s", strndup(buffer, sz));
@@ -110,7 +110,7 @@ void stdin_keybuff(uint8_t scancode)
 uint32_t stdin_read(FILE* f, uint32_t off, uint32_t sz, char* buf)
 {
     serialprintf("[STDIN] Waiting for char in off: 0x%06x+0x%06x\n", off, sz);
-    asm("sti");
+    ASM_FUNC("sti");
     charbuffer_waitchar(cbuf, '\n');
     charbuffer_dump(cbuf, buf);
     serialprintf("%s'C'\n", buf);

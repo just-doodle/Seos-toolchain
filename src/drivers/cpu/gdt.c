@@ -13,7 +13,7 @@ void gdt_handler(registers_t* registers)
     int table = get_bit(ecode, 1);
     int index = (ecode >> 2) & 13;
 
-    printf("This fault was happened %s inside %s entry #%d.\n", External == 0 ? "internally" : "externally", (table == 0b00 ? "GDT" : (table == 0b01) ? "IDT" : (table == 0b10) ? "LDT" : "Unknown"), index);
+    printf("This fault was happened %s inside %s entry #%d.\n", External == 0 ? "internally" : "externally", (table == 0x00 ? "GDT" : (table == 0x01) ? "IDT" : (table == 0x02) ? "LDT" : "Unknown"), index);
     kernel_panic("GPF");
 }
 

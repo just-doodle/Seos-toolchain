@@ -104,9 +104,9 @@ uint32_t kmalloc_int(uint32_t size, int align, uint32_t* paddr)
 
 void* kmalloc_a(uint32_t size)
 {
-    asm("cli");
+    ASM_FUNC("cli");
     void* ret = (void*)kmalloc_int(size, 1, 0);
-    asm("sti");
+    ASM_FUNC("sti");
     return ret;
 }
 
@@ -122,24 +122,24 @@ uint32_t kmalloc_ap(uint32_t size, uint32_t* paddr)
 
 void* kmalloc(uint32_t size)
 {
-    asm("cli");
+    ASM_FUNC("cli");
     void* ret = (void*)kmalloc_int(size, 0, 0);
-    asm("sti");
+    ASM_FUNC("sti");
     return ret;
 }
 
 void kfree(void* ptr)
 {
-    asm("cli");
+    ASM_FUNC("cli");
     free(ptr);
-    asm("sti");
+    ASM_FUNC("sti");
 }
 
 void* krealloc(void* ptr, uint32_t size)
 {
-    asm("cli");
+    ASM_FUNC("cli");
     void* ret = realloc(ptr, size);
-    asm("sti");
+    ASM_FUNC("sti");
     return ret;
 }
 

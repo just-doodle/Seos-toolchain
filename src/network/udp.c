@@ -55,7 +55,7 @@ void udp_send_packet(uint8_t * dst_ip, uint16_t src_port, uint16_t dst_port, voi
     free(packet);
 }
 
-void udp_handle_packet(udp_packet_t * packet, ipv4_addr_t * src_addr, ipv4_addr_t* dst_addr, uint32_t len)
+void udp_handle_packet(udp_packet_t * packet, uint8_t* src_addr, uint8_t* dst_addr, uint32_t len)
 {
     uint16_t dst_port = ntohs(packet->dst_port);
     uint16_t src_port = ntohs(packet->src_port);
@@ -82,4 +82,5 @@ void init_udp()
     {
         udp_sockets[i].port = 0;
     }
+    register_ipv4_protocol(udp_handle_packet, "UDP", PROTOCOL_UDP);
 }

@@ -30,7 +30,7 @@ void vbox_handle_irq(registers_t* regs)
     if(!(vmmdev[2]))
     {
         ldprintf("VBOX", LOG_INFO, "Got irq from others %d", regs->ino);
-        return 0;
+        return;
     }
 
     vbox.ev->events = vmmdev[2];
@@ -60,14 +60,14 @@ void init_vbox()
         vbox.vbox_pci = pci_get_device(VBOX_VENDOR_ID, VBOX_DEVICE_ID, -1);
         vbox.port = pci_read(vbox.vbox_pci, PCI_OFF_BAR0) & 0xFFFFFFFC;
         vbox.irq_line = pci_read(vbox.vbox_pci, PCI_OFF_INTERRUPT_LINE);
-        vmmdev = (pci_read(vbox.vbox_pci, PCI_OFF_BAR1));
+        vmmdev = (uint32_t*)(pci_read(vbox.vbox_pci, PCI_OFF_BAR1));
         alloc_region(kernel_page_dir, (((uint32_t)vmmdev) & 0xFFFFFFF0), ((((uint32_t)vmmdev) & 0xFFFFFFF0) + (4 * 256 * PAGE_SIZE)), 1, 1, 1);
         ldprintf("VBOX", LOG_INFO, "vmmdev: 0x%x", (uint32_t)vmmdev);
 
         register_interrupt_handler(IRQ(vbox.irq_line), vbox_handle_irq);
 
         uint32_t ginfo_paddr;
-        vbox_guest_info_t* ginfo = kmalloc_p(sizeof(vbox_guest_info_t), &ginfo_paddr);
+        vbox_guest_info_t* ginfo = (vbox_guest_info_t*)kmalloc_p(sizeof(vbox_guest_info_t), &ginfo_paddr);
         ginfo->header.req_type = VBOX_REQUEST_GUEST_INFO;
         ginfo->header.size = sizeof(vbox_guest_info_t);
         ginfo->header.version = VBOX_REQUEST_HEADER_VERSION;
@@ -78,7 +78,7 @@ void init_vbox()
         outl(vbox.port, ginfo_paddr);
 
         uint32_t gcaps_paddr;
-        vbox_guest_caps_t* gcaps = kmalloc_p(sizeof(vbox_guest_caps_t), &gcaps_paddr);
+        vbox_guest_caps_t* gcaps = (vbox_guest_caps_t*)kmalloc_p(sizeof(vbox_guest_caps_t), &gcaps_paddr);
         gcaps->header.req_type = VBOX_REQUEST_SET_GUEST_CAPS;
         gcaps->header.size = sizeof(vbox_guest_caps_t);
         gcaps->header.version = VBOX_REQUEST_HEADER_VERSION;
@@ -88,7 +88,7 @@ void init_vbox()
         outl(vbox.port, gcaps_paddr);
 
         vbox.ev_paddr = 0;
-        vbox.ev = kmalloc_p(sizeof(vbox_ack_events_t), &vbox.ev_paddr);
+        vbox.ev = (vbox_ack_events_t*)kmalloc_p(sizeof(vbox_ack_events_t), &vbox.ev_paddr);
         vbox.ev->header.req_type = VBOX_REQUEST_ACK_EVENTS;
         vbox.ev->header.size = sizeof(vbox_ack_events_t);
         vbox.ev->header.version = VBOX_REQUEST_HEADER_VERSION;
@@ -97,7 +97,7 @@ void init_vbox()
         vbox.ev->events = 0;
 
         vbox.vdc_paddr = 0;
-        vbox.vdc = kmalloc_p(sizeof(vbox_display_change_t), &vbox.vdc_paddr);
+        vbox.vdc = (vbox_display_change_t*)kmalloc_p(sizeof(vbox_display_change_t), &vbox.vdc_paddr);
         vbox.vdc->header.req_type = VBOX_REQUEST_GET_DISPLAY_CHANGE;
         vbox.vdc->header.size = sizeof(vbox_display_change_t);
         vbox.vdc->header.version = VBOX_REQUEST_HEADER_VERSION;
@@ -109,7 +109,7 @@ void init_vbox()
         vbox.vdc->eventack = 1;
         
         vbox.mouse_paddr = 0;
-        vbox.mouse = kmalloc_p(sizeof(vbox_mouse_t), &vbox.mouse_paddr);
+        vbox.mouse = (vbox_mouse_t*)kmalloc_p(sizeof(vbox_mouse_t), &vbox.mouse_paddr);
         vbox.mouse->header.req_type = VBOX_REQUEST_SET_MOUSE;
         vbox.mouse->header.size = sizeof(vbox_mouse_t);
         vbox.mouse->header.version = VBOX_REQUEST_HEADER_VERSION;
@@ -121,7 +121,7 @@ void init_vbox()
         outl(vbox.port, vbox.mouse_paddr);
         vbox.mouse->header.req_type = VBOX_REQUEST_GET_MOUSE;
 
-        vbox_write("Hello VBOX!", 12);
+        vbox_write(((uint8_t*)"Hello VBOX!"), 12);
 
         vmmdev[3] = (0xFFFFFFFF);
     }

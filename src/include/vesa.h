@@ -69,7 +69,7 @@ typedef union uint24
         uint8_t g;
         uint8_t b;
     }rgb;
-    uint32_t integer : 24 __attribute__((packed));;
+    uint32_t integer : 24 __attribute__((packed));
 }uint24_t;
 
 void init_vesa();

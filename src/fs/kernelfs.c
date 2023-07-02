@@ -23,6 +23,12 @@ kernelfs_node_t* kernelfs_get_node_from_file(FILE* f)
 kernelfs_node_t* kernelfs_get_node_from_name(kernelfs_t* fs, char* name)
 {
     kernelfs_node_t* n = NULL;
+
+    if(validate(fs) != 1)
+        return NULL;
+    if(validate(fs->nodes) != 1)
+        return NULL;
+
     foreach(l, fs->nodes)
     {
         n = l->val;

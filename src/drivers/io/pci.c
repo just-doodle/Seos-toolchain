@@ -325,7 +325,6 @@ pci_bar_t GetBaseAddressRegister(pci_t dev, uint16_t bar)
 
     uint32_t bar_value = pci_read(dev, 0x10 + 4 * bar);
     result.type = (bar_value & 0x1) ? PCI_DEVTYPE_IO : PCI_DEVTYPE_MMIO;
-    uint32_t temp;
 
     if (result.type == PCI_DEVTYPE_MMIO)
     {

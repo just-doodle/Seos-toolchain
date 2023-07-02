@@ -55,7 +55,7 @@ int validate(void* ptr)
 void stack_trace(uint32_t maxframes)
 {
     stackframe_t* stk;
-    asm("movl %%ebp,%0" : "=r"(stk) ::);
+    ASM_FUNC("movl %%ebp,%0" : "=r"(stk) ::);
     printf("stack trace:\n");
     for(uint32_t frame = 0; stk && frame < maxframes; frame++)
     {
@@ -197,7 +197,7 @@ symbol_t* get_kernel_symbol_by_name(char* name)
 void backtrace()
 {
     stackframe_t* stk;
-    asm("movl %%ebp,%0" : "=r"(stk) ::);
+    ASM_FUNC("movl %%ebp,%0" : "=r"(stk) ::);
     symoff_t symbol;
     printf("stack trace:\n");
     for(uint32_t frame = 0; stk && frame < 100; frame++)

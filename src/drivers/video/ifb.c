@@ -193,7 +193,7 @@ void ifb_screenshot()
     if(validate(block->info) != 1)
         return;
     
-    asm("cli");
+    ASM_FUNC("cli");
     ldprintf("IFB", LOG_INFO, "Screenshotting..");
     custom_stbi_mem_context ct;
     uint8_t* simg = zalloc(2*MB);
@@ -216,7 +216,7 @@ void ifb_screenshot()
         ldprintf("IFB", LOG_INFO, "Screenshot saved to %s.", buf);
         free(buf);
     }
-    asm("sti");
+    ASM_FUNC("sti");
 }
 
 void* ifb_getIFB()

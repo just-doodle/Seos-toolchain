@@ -28,7 +28,7 @@ int syscall_reboot()
 
 int syscall_uname(struct utsname* name);
 
-void * syscall_table[MAX_SYSCALLS] = {
+void * syscall_table[MAX_SYSCALL_ENTRIES] = {
     serial_putc, //0
     exit, //1
     attach_handler, //2
@@ -83,12 +83,17 @@ void syscall_create_process(char* name, void* entrypoint)
 
 void syscall_handler(registers_t *reg)
 {
-    if(reg->eax >= MAX_SYSCALLS) return;
+    if(reg->eax >= MAX_SYSCALL_ENTRIES) return;
     void * system_api = syscall_table[reg->eax];
+    if(validate(system_api) != 1)
+    {
+        reg->eax = -1;
+        return;
+    }
     int ret;
     //memcpy(&saved_context, reg, sizeof(registers_t));
     //serialprintf("SYSCALL 0x%02x\n", reg->eax);
-    asm volatile (" \
+    ASM_FUNC (" \
     push %1; \
     push %2; \
     push %3; \
@@ -103,6 +108,25 @@ void syscall_handler(registers_t *reg)
     " : "=a" (ret) : "r" (reg->edi), "r" (reg->esi), "r" (reg->edx), "r" (reg->ecx), "r" (reg->ebx), "r" (system_api));
 
     reg->eax = ret;
+}
+
+int register_syscall(void* handler, uint32_t syscode)
+{
+    if(validate(handler) != 1)
+        return 1;
+
+    if(validate(syscall_table[syscode]) == 1)
+        return 1;
+
+    if(syscode < MAX_KERNEL_SYSCALLS)
+        return 1;
+
+    if(syscode > MAX_SYSCALL_ENTRIES)
+        return 1;
+
+    syscall_table[syscode] = handler;
+    ldprintf("Syscall manager", LOG_INFO, "New syscall handler has registered in 0x%x", syscode);
+    return 0;
 }
 
 void init_syscall()

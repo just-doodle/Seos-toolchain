@@ -84,6 +84,26 @@ int ls(list_t *args)
     return 0;
 }
 
+int s_arpb(list_t* args)
+{
+    char* ip_str = list_pop(args)->val;
+    list_t* ip_lst = str_split(ip_str, ".", NULL);
+
+    uint8_t* buf = zalloc(sizeof(uint8_t)*4);
+
+    int h = 0;
+
+    foreach(k, ip_lst)
+    {
+        buf[h] = k->val;
+        h++;
+    }
+
+    arp_broadcast(buf);
+    free(buf);
+    return 0;
+}
+
 int s_dufunc(char* fname)
 {
     FILE* f = file_open(fname, OPEN_RDONLY);
@@ -410,6 +430,7 @@ void init_shell()
     getCMD("insmod", "Installs the given module to kernel", s_insmod);
     getCMD("rmmod", "Unloads the module with given name", s_rmmod);
     getCMD("lsmod", "Lists the loaded modules", s_lsmod);
+    getCMD("arpb", "Broadcast ip to given ip address", s_arpb);
 }
 
 void clear_buffer()

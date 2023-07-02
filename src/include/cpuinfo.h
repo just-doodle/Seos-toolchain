@@ -6,7 +6,7 @@
 #include "printf.h"
 #include "cpuid.h"
 
-#define CPUID(in, a, b, c, d) asm("cpuid": "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(in));
+#define CPUID(in, a, b, c, d) ASM_FUNC("cpuid": "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(in));
 
 typedef struct cpuinfo_struct
 {

@@ -2,6 +2,7 @@
 #include "vga_text.h"
 #include "debug.h"
 #include "process.h"
+#include "compositor.h"
 #include "logdisk.h"
 
 int isLessMSG = 0;
@@ -61,7 +62,7 @@ void exception_handler(registers_t cps)
             printf("Extended instruction pointer  = 0x%06x\n", cps.eip);
             printf("Error code = 0x%06x\n", cps.ecode);
             uint32_t faulting_addr;
-            asm volatile("mov %%cr2, %0" : "=r" (faulting_addr));
+            ASM_FUNC("mov %%cr2, %0" : "=r" (faulting_addr));
             printf("CR2 = 0x%06x\n", faulting_addr);
             printf("EBX = 0x%06x\n", cps.ebx);
             printf("Killing process: %d\n\n", current_process->pid);
@@ -153,7 +154,6 @@ void exception_handler(registers_t cps)
         printf("\033[m");
     }
 
-exce_exit:
     if(interrupt_handlers[cps.ino] != 0)
     {
         isr_t handler = interrupt_handlers[cps.ino];

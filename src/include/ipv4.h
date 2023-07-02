@@ -24,6 +24,17 @@ typedef struct ipv4_addr
     uint8_t addr[4];
 } ipv4_addr_t;
 
+typedef int (*ipv4_handle_packet)(uint8_t* packet, uint8_t* src_addr, uint8_t* dst_addr, uint32_t len);
+
+typedef struct ipv4_protocol_info_struct
+{
+    char name[8];
+    int protocol;
+    ipv4_handle_packet handle_packet;
+
+    listnode_t* self;
+}ipv4_protocol_info_t;
+
 typedef struct ip_packet
 {
     char version_ihl_ptr[0];
@@ -51,5 +62,7 @@ uint16_t ip_checksum(ip_packet_t* packet);
 
 void ip_send_packet(uint8_t* dstip, void* data, int len, uint8_t protocol);
 void ip_handle_packet(ip_packet_t* packet);
+
+void register_ipv4_protocol(ipv4_handle_packet handler, char name[8], int protocol);
 
 #endif /*__IPV4_H__*/

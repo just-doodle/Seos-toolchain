@@ -60,7 +60,7 @@ uint32_t pcspkr_write(FILE* f, uint32_t offset, uint32_t size, char* buffer)
 
     uint32_t error_notes = 0;
 
-    note_t* notes = buffer;
+    note_t* notes = (note_t*)buffer;
     for(uint32_t i = 0; i < (size / sizeof(note_t)); i++)
     {
         beep(notes[i].frequency, notes[i].length);

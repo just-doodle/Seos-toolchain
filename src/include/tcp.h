@@ -104,7 +104,7 @@ void tcpsocket_send(TCPSocket_t* socket, uint8_t* data, uint16_t len);
 
 void tcp_bind(TCPSocket_t* socket, TCPHandleTransmission_t handler);
 
-void tcp_handle_packet(uint8_t* packet, ipv4_addr_t * src_addr, ipv4_addr_t* dst_addr, uint32_t len);
+void tcp_handle_packet(uint8_t* packet, uint8_t* src_addr, uint8_t* dst_addr, uint32_t len);
 
 void init_tcp();
 

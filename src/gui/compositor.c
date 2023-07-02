@@ -7,7 +7,7 @@
 
 uint32_t background_color = rgb(254, 128, 20);
 
-#define __COMPOSITOR_LOW_END__ 1
+#define __COMPOSITOR_LOW_END__ 0
 
 ifb_video_info_t* mode = NULL;
 
@@ -205,7 +205,7 @@ void window_putpixel(window_t* win, uint32_t x, uint32_t y, uint32_t color)
 
 void window_move(window_t* win, uint32_t x, uint32_t y)
 {
-    asm("cli");
+    ASM_FUNC("cli");
     compositor_background_fill();
     ifb_refresh();
 
@@ -216,12 +216,12 @@ void window_move(window_t* win, uint32_t x, uint32_t y)
     win->bar.r = rect_create(win->x, win->y, win->width, 16);
 
     window_drawall();
-    asm("sti");
+    ASM_FUNC("sti");
 }
 
 void window_focus(window_t* w)
 {
-    serialprintf("[COMPOSITOR] Focused window \"%s\"\n", w->title);
+    // serialprintf("[COMPOSITOR] Focused window \"%s\"\n", w->title);
     if(w->isMinimized == false)
         focused_window = w;
     else
@@ -315,9 +315,9 @@ void window_close(window_t* w)
     free(w->region.region);
     free(w->bar.region);
     free(w);
-    asm("cli");
+    ASM_FUNC("cli");
     window_drawall();
-    asm("sti");
+    ASM_FUNC("sti");
 }
 
 void window_close_norefresh(window_t* w)
@@ -340,10 +340,10 @@ void window_close_by_pid(pid_t pid)
             window_close_norefresh(w);
         }
     }
-    asm("cli");
+    ASM_FUNC("cli");
     compositor_background_fill();
     window_drawall();
-    asm("sti");
+    ASM_FUNC("sti");
 }
 
 void update_statusbar(char* msg, int s_col, int s_row, uint32_t color)
@@ -468,10 +468,10 @@ void minimize_focused()
 {
     focused_window->isMinimized = true;
     focused_window = (focused_window->self->next->val == NULL ? (focused_window->self->prev->val == NULL ? NULL : focused_window->self->prev->val) : focused_window->self->next->val);
-    asm("cli");
+    ASM_FUNC("cli");
     compositor_background_fill();
     window_drawall();
-    asm("sti");
+    ASM_FUNC("sti");
 }
 
 void maximize(window_t* w)
@@ -480,10 +480,10 @@ void maximize(window_t* w)
     {
         w->isMinimized = false;
         focused_window = w;
-        asm("cli");
+        ASM_FUNC("cli");
         compositor_background_fill();
         window_drawall();
-        asm("sti");
+        ASM_FUNC("sti");
     }
 }
 
@@ -496,10 +496,10 @@ void minimize(window_t* w)
         {
             focused_window = (focused_window->self->next->val == NULL ? (focused_window->self->prev->val == NULL ? NULL : focused_window->self->prev->val) : focused_window->self->next->val);
         }
-        asm("cli");
+        ASM_FUNC("cli");
         compositor_background_fill();
         window_drawall();
-        asm("sti");
+        ASM_FUNC("sti");
     }
 }
 

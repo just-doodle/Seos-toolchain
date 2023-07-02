@@ -4,6 +4,8 @@
 // #include "udp.h"
 // #include "icmp.h"
 
+list_t* protocols = NULL;
+
 uint8_t my_ip[] = {10, 0, 2, 14};
 uint8_t test_target_ip[] = {10, 0, 2, 15};
 uint8_t zero_hardware_addr[] = {0,0,0,0,0,0};
@@ -119,6 +121,19 @@ void ip_send_packet(uint8_t* dst_ip, void* data, int len, uint8_t protocol)
     ethernet_send(dst_hardware_addr, packet, htons(packet->length), ETHERNET_TYPE_IP);
 }
 
+ipv4_protocol_info_t* ipv4_get_protocol(int protocol)
+{
+    ipv4_protocol_info_t* pinfo = NULL;
+    foreach(l, protocols)
+    {
+        pinfo = l->val;
+        if(pinfo->protocol == protocol)
+            return pinfo;
+    }
+
+    return NULL;
+}
+
 void ip_handle_packet(ip_packet_t* packet)
 {
     *((uint8_t*)(&packet->version_ihl_ptr)) = ntohb(*((uint8_t*)(&packet->version_ihl_ptr)), 4);
@@ -128,39 +143,29 @@ void ip_handle_packet(ip_packet_t* packet)
 
     if(packet->version == IP_VERSION)
     {
-        ipv4_addr_t src_addr;
-        src_addr.addr[0] = packet->src_ip[0];
-        src_addr.addr[1] = packet->src_ip[1];
-        src_addr.addr[2] = packet->src_ip[2];
-        src_addr.addr[3] = packet->src_ip[3];
+        uint8_t src_addr[4];
+        src_addr[0] = packet->src_ip[0];
+        src_addr[1] = packet->src_ip[1];
+        src_addr[2] = packet->src_ip[2];
+        src_addr[3] = packet->src_ip[3];
 
-        ipv4_addr_t dst_addr;
-        dst_addr.addr[0] = packet->dst_ip[0];
-        dst_addr.addr[1] = packet->dst_ip[1];
-        dst_addr.addr[2] = packet->dst_ip[2];
-        dst_addr.addr[3] = packet->dst_ip[3];
+        uint8_t dst_addr[4];
+        dst_addr[0] = packet->dst_ip[0];
+        dst_addr[1] = packet->dst_ip[1];
+        dst_addr[2] = packet->dst_ip[2];
+        dst_addr[3] = packet->dst_ip[3];
 
         void * data_ptr = (void*)packet + packet->ihl * 4;
         int data_len = ntohs(packet->length) - sizeof(ip_packet_t);
 
-        switch(packet->protocol)
+        ipv4_protocol_info_t* pinfo = ipv4_get_protocol(packet->protocol);
+        if(pinfo == NULL)
         {
-            case PROTOCOL_ICMP:
-                //serialprintf("ICMP packet\n");
-                //icmp_handle_packet(data_ptr, packet->src_ip);
-                break;
-            case PROTOCOL_TCP:
-                //serialprintf("TCP packet\n");
-                tcp_handle_packet(data_ptr, &src_addr, &dst_addr, data_len);
-                break;
-            case PROTOCOL_UDP:
-                //serialprintf("UDP packet\n");
-                udp_handle_packet(data_ptr, &src_addr, &dst_addr, data_len);
-                break;
-            default:
-                ldprintf("IPv4", LOG_ERR, "Unsupported protocol: %d\n", packet->protocol);
-                break;
+            ldprintf("IPv4", LOG_DEBUG, "Unknown protocol %d", packet->protocol);
+            return;
         }
+
+        pinfo->handle_packet(data_ptr, src_addr, dst_addr, data_len);
     }
     else
     {
@@ -168,4 +173,18 @@ void ip_handle_packet(ip_packet_t* packet)
     }
 
     return;
+}
+
+void register_ipv4_protocol(ipv4_handle_packet handler, char name[8], int protocol)
+{
+    if(protocols == NULL)
+        protocols = list_create();
+
+    ipv4_protocol_info_t* pinfo = ZALLOC_TYPES(ipv4_protocol_info_t);
+    pinfo->handle_packet = handler;
+    pinfo->protocol = protocol;
+    strcpy(pinfo->name, name);
+
+    pinfo->self = list_insert_front(protocols, pinfo);
+    ldprintf("IPv4", LOG_DEBUG, "New protocol over ipv4 named %s has been registered", name);
 }

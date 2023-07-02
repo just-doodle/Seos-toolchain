@@ -139,7 +139,8 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/kernel/kernel.o
 
 MODULES= $(FILESDIR)/test.ko \
-		 $(FILESDIR)/pcspkr.ko 
+		 $(FILESDIR)/pcspkr.ko \
+		 $(FILESDIR)/icmp.ko 
 
 all: kernel iso
 
@@ -170,6 +171,11 @@ $(ISOFILE): $(MODULES) $(IMAGEFILE) $(EXECUTABLE)
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "Boot $(PROJECT) in debug mode" { '>> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'menuentry "Boot $(PROJECT) with networking enabled" { '>> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0 --network_enable' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg

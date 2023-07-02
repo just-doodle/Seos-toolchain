@@ -9,6 +9,8 @@
 
 #include "user_syscall.h"
 
+#define MAX_SYSCALL_ENTRIES 0xFFFF
+
 typedef struct syscall_rw_options
 {
     uint32_t offset;
@@ -19,6 +21,8 @@ typedef struct syscall_rw_options
 void syscall_vfs_read(vfs_node* file, syscall_rwo_t* options);
 void syscall_vfs_write(vfs_node* file, syscall_rwo_t* options);
 void syscall_create_process(char* name, void* entrypoint);
+
+int register_syscall(void* handler, uint32_t syscode);
 
 void syscall_handler(registers_t* reg);
 void init_syscall();
