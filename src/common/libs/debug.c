@@ -102,28 +102,22 @@ symoff_t get_symbol(uint32_t addr)
         }
     }
 
-    list_t* module_symbols = get_symbol_list_from_last_module();
-    foreach(symbol_node, module_symbols)
-    {
-        sym = symbol_node->val;
-        uint32_t offset = get_offset(addr, sym);
-        if(offset)
-            return (symoff_t){sym->name, offset};
-    }
+    return get_symoff_from_modules(addr);
+
 
 	return (symoff_t){"????", 0};
 }
 
-void load_kernel_symbols(multiboot_info_t* info)
+void load_kernel_symbols(struct multiboot_tag_elf_sections* info)
 {
-    uint32_t shndx = info->u.elf_sec.shndx;
-    uint32_t num = info->u.elf_sec.num;
-    uint32_t size = info->u.elf_sec.size;
-    uint8_t* shdr_buf = info->u.elf_sec.addr;
+    uint32_t shndx = info->shndx;
+    uint32_t num = info->num;
+    uint32_t size = info->size;
+    uint8_t* shdr_buf = info->sections;
 
     alloc_region(kernel_page_dir, shdr_buf, shdr_buf + (num*size), 1, 1, 1);
 
-    elf_section_header_t* shdr = (elf_section_header_t*)info->u.elf_sec.addr;
+    elf_section_header_t* shdr = (elf_section_header_t*)info->sections;
 
     uint32_t sym_num = 0;
     elf_sym_t* symtab = NULL;

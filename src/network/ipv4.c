@@ -165,6 +165,7 @@ void ip_handle_packet(ip_packet_t* packet)
             return;
         }
 
+        ldprintf("IPv4", LOG_DEBUG, "Got %s packet. [0x%x:%s()]", pinfo->name, pinfo->handle_packet, get_symbol(pinfo->handle_packet).name);
         pinfo->handle_packet(data_ptr, src_addr, dst_addr, data_len);
     }
     else

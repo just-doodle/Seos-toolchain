@@ -99,12 +99,12 @@ void ata_pio_identify(ata_pio_t* ap)
 
     if(ap->commandSets & (1 << 26))
     {
-        printf("[ATA PIO] LBA 48 supported\n");
+        ldprintf("ATA PIO", LOG_INFO, "LBA48 supported");
         ap->size = *(uint32_t*)(id_buf + IDENT_MAX_LBA_EXT);
     }
     else
     {
-        printf("[ATA PIO] LBA28 or CHS supported\n");
+        ldprintf("ATA PIO", LOG_INFO, "LBA28 or CHS supported");
         ap->size = *(uint32_t*)(id_buf + IDENT_MAX_LBA);
     }
 
@@ -320,13 +320,13 @@ void ata_pio_close(vfs_node* node)
 
 FILE* ata_pio_GetVFSNode(ata_pio_t* ap)
 {
-    FILE* f = (FILE*)kcalloc(sizeof(FILE), 1);
+    FILE* f = (FILE*)zalloc(sizeof(FILE));
     f->device = ap;
     f->read = ata_pio_read;
     f->write = ata_pio_write;
     f->open = ata_pio_open;
     f->close = ata_pio_close;
-    f->size = ap->size;
+    f->size = ap->size*512;
     strcpy(f->name, "apio");
     strcat(f->name, ((ap->basePort == 0x1F0) ? (ap->master ? "0" : "1") : (ap->master ? "2" : "3")));
     f->flags = FS_BLOCKDEVICE;

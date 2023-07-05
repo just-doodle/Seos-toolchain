@@ -7,19 +7,6 @@ net_t* current_interface = NULL;
 
 int isNetworkON = 0;
 
-void register_network_interface(net_t* interface)
-{
-    list_insert_back(ninterface_list, interface);
-}
-
-void interface_receive(uint8_t* packet, uint32_t size)
-{
-    if(isNetworkON)
-    {
-        ethernet_handle_packet((etherframe_t*)packet, size);
-    }
-}
-
 char* identify_interface(net_t* interface)
 {
     switch(interface->IUID)
@@ -30,10 +17,32 @@ char* identify_interface(net_t* interface)
     case RTL8139_IUID:
         return "Realtek RTL8139";
         break;
+    case LOOPBACK_IUID:
+        return "Loopback device";
+        break;
     default:
         return "Unknown";
         break;
     };
+}
+
+void register_network_interface(net_t* interface)
+{
+    list_insert_back(ninterface_list, interface);
+
+    if(current_interface == NULL)
+    {
+        current_interface = interface;
+        ldprintf("NIM", LOG_INFO, "%s is selected as the current network interface!", identify_interface(interface));
+    }
+}
+
+void interface_receive(uint8_t* packet, uint32_t size)
+{
+    if(isNetworkON)
+    {
+        ethernet_handle_packet((etherframe_t*)packet, size);
+    }
 }
 
 int isCurrentInterface(net_t* interface)
@@ -82,18 +91,7 @@ void switch_interface(uint32_t index)
     net_t* interface = node->val;
     current_interface = interface;
 
-    switch(interface->IUID)
-    {
-    case AM79C973_IUID:
-        ldprintf("NIM", LOG_INFO, "AMD PCNET fast III is selected as the current network interface!");
-        break;
-    case RTL8139_IUID:
-        ldprintf("NIM", LOG_INFO, "Realtek RTL8139 is selected as the current network interface!");
-        break;
-    default:
-        ldprintf("NIM", LOG_WARN, "Unknown network device is used as the current network interface!");
-        break;
-    };
+    ldprintf("NIM", LOG_INFO, "%s is selected as the current network interface!", identify_interface(interface));
 }
 
 bool getInterfaceState()

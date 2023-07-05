@@ -3,7 +3,7 @@
 
 #include "stdarg.h"
 #include "stdbool.h"
-#include "multiboot.h"
+#include "multiboot2.h"
 
 #define __USE_INBUILT_STDINT__ 1
 
@@ -71,7 +71,6 @@ typedef uint32_t uintptr_t;
 
 extern uint32_t k_end;
 
-extern multiboot_info_t* m_info;
 extern int paging_enabled;
 extern bool kheap_enabled;
 

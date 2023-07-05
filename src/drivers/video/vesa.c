@@ -87,8 +87,8 @@ int vesa_draw(uint32_t* fb, uint32_t width, uint32_t height)
 
 ifb_video_info_t* vesa_get_modeinfo()
 {
-    if(validate(current_mode_info.phys_base) != 1)
-        return NULL;
+    // if(validate(current_mode_info.phys_base) != 1)
+    //     return NULL;
 
     ifb_video_info_t* info = ZALLOC_TYPES(ifb_video_info_t);
     info->width = current_mode_info.XResolution;
@@ -102,15 +102,18 @@ ifb_video_info_t* vesa_get_modeinfo()
     return info;
 }
 
-void init_vesa(multiboot_info_t *m)
+void init_vesa(struct multiboot_tag_vbe* vbe)
 {
-    alloc_region(kernel_page_dir, m->vbe_mode_info, m->vbe_mode_info+sizeof(VBE_MODE_INFO_t), 1, 1, 1);
-    current_mode_info = *((VBE_MODE_INFO_t*)m->vbe_mode_info);
+    current_mode_info = *((VBE_MODE_INFO_t*)vbe->vbe_mode_info.external_specification);
+    current_mode = vbe->vbe_mode;
 
-    void* framebuffer = vesa_getFramebuffer();
+    uint32_t* framebuffer = current_mode_info.phys_base;
     alloc_region(kernel_page_dir, (uint32_t)framebuffer, (uint32_t)(framebuffer + vesa_getXResolution() * vesa_getYResolution() * 4), 1, 1, 1);
 
     pic_eoi(0x28);
+
+    for(uint32_t i = 0; i < current_mode_info.XResolution*current_mode_info.YResolution; i++)
+        framebuffer[i] = 0xFFDEADBE;
 
     vesa_driver = ZALLOC_TYPES(ifb_video_driver_t);
     strcpy(vesa_driver->name, "vesa");

@@ -3,6 +3,7 @@
 #include "targa.h"
 #include "rtc.h"
 #include "bitmap.h"
+#include "logdisk.h"
 #include "timer.h"
 
 uint32_t background_color = rgb(254, 128, 20);
@@ -301,7 +302,8 @@ void init_compositor()
 
     register_modeset_handler(compositor_onModeset);
 
-    register_wakeup_callback(win_timer, 60/get_frequency());
+    register_wakeup_callback(win_timer, 60/(get_frequency() == 0 ? 1000 : get_frequency()));
+    ldprintf("Compositor", LOG_INFO, "Compositor successfully initialized");
 }
 
 window_t* get_focused_window()

@@ -165,17 +165,22 @@ $(ISOFILE): $(MODULES) $(IMAGEFILE) $(EXECUTABLE)
 	@echo 'set root=(cd)' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "Boot $(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 2' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 2' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "Boot $(PROJECT) in debug mode" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "Boot $(PROJECT) with networking enabled" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0 --network_enable' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0 --network_enable' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'menuentry "Boot $(PROJECT) with only loopback enabled" { '>> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0 --network_enable_loopback' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
@@ -214,6 +219,9 @@ rund: $(ISOFILE)
 
 runkvmd: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS) -enable-kvm -cpu host
+
+runvbox:
+	$(SCRIPTSDIR)/run_vbox.sh
 
 stripd: $(EXECUTABLE)
 	@$(TOOLDIR)$(OBJCOPY) --only-keep-debug $(EXECUTABLE) debug.sym

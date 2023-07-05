@@ -102,6 +102,24 @@ symbol_t* get_symbol_from_modules(char* name)
     return NULL;
 }
 
+symoff_t get_symoff_from_modules(uint32_t addr)
+{
+    symbol_t* s = NULL;
+    foreach(module_node, modules)
+    {
+        module_entry_t* entry = module_node->val;
+        foreach(symbols_node, entry->symbols)
+        {
+            s = symbols_node->val;
+            uint32_t offset = get_offset(addr, s);
+            if(offset)
+                return (symoff_t){s->name, offset};
+        }
+    }
+
+    return (symoff_t){"????", 0};
+}
+
 list_t* get_symbol_list_from_last_module()
 {
     if(validate(modules) != 1)

@@ -1,4 +1,5 @@
 #include "loopback.h"
+#include "logdisk.h"
 #include "ethernet.h"
 
 loopback_t lp;
@@ -34,6 +35,8 @@ void init_loopback()
     lp.dev->IUID = LOOPBACK_IUID;
 
     lp.ip_addr = (0x0100007F);
+    ldprintf("LOOPBACK", LOG_DEBUG, "IP Address: 0x%x", lp.ip_addr);
+    
 
     register_network_interface(lp.dev);
 }

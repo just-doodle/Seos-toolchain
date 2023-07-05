@@ -39,7 +39,7 @@ void stack_trace(uint32_t maxframes);
 void xxd(void* ptr, uint32_t size);
 int validate(void* ptr);
 
-void load_kernel_symbols(multiboot_info_t* info);
+void load_kernel_symbols(struct multiboot_tag_elf_sections* info);
 symoff_t get_symbol(uint32_t addr);
 symbol_t* get_kernel_symbol_by_name(char* name);
 

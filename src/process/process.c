@@ -2,6 +2,7 @@
 #include "elf_loader.h"
 #include "shell.h"
 #include "compositor.h"
+#include "logdisk.h"
 #include "keyboard.h"
 
 // TODO: Fix a bug which occurs when changing from one process to other
@@ -467,6 +468,13 @@ void process_kbh(uint8_t scancode)
                 isPause = false;
             }
             break;
+        case 0x45:
+            if(isPause)
+            {
+                ldprintf("Process manager", LOG_DEBUG, "User has requested to dump the entire log to file: /kernel.log");
+                logdisk_dump("/kernel.log");
+                isPause = 0;
+            }break;
         };
     }
 
