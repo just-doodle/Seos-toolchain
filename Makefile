@@ -12,7 +12,7 @@ OSTOOL_DIR=~/sysroot/usr/bin/
 CC=i686-elf-gcc
 CCVERSION = $(shell echo $(CC) $(shell $(PREFIX)$(CC) --version | grep $(CC) | sed 's/^.* //g'))
 CFLAGS=
-KCFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -DKERNEL_COMPILER="\"$(CCVERSION)\"" -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -Wpedantic -ggdb -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=1 -D__COMPOSITOR_LOW_END__=0 $(CFLAGS)
+KCFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -DKERNEL_COMPILER="\"$(CCVERSION)\"" -fno-omit-frame-pointer -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -Wpedantic -ggdb -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=1 -D__COMPOSITOR_LOW_END__=0 $(CFLAGS)
 
 
 CXX=$(TOOLDIR)/i686-elf-g++
@@ -59,6 +59,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/cpu/tss_helper.o \
 			$(SRCDIR)/drivers/cpu/pic.o \
 			$(SRCDIR)/drivers/cpu/pit.o \
+			$(SRCDIR)/drivers/cpu/acpi.o \
 			$(SRCDIR)/drivers/cpu/rdtsc.o \
 			$(SRCDIR)/drivers/cpu/sse.o \
 			$(SRCDIR)/drivers/cpu/cpuinfo.o \
@@ -136,6 +137,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/process/filedescriptor.o \
 			$(SRCDIR)/kernel/shell.o \
 			$(SRCDIR)/kernel/modules.o \
+			$(SRCDIR)/kernel/multiboot_tags.o \
 			$(SRCDIR)/kernel/kernel.o
 
 MODULES= $(FILESDIR)/test.ko \

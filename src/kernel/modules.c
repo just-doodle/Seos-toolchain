@@ -526,6 +526,14 @@ int load_module(char** argv)
         return -1;
     }
 
+    if(strcmp(info->name, "__KERNEL_SYMTAB__//") == 0)
+    {
+        ldprintf("Module loader", LOG_ERR, "Cannot use the name \"__KERNEL_SYMTAB__//\" as module name");
+        free(entry->ptr);
+        free(entry);
+        return -1;
+    }
+
     if(module_isLoaded(info->name))
     {
         ldprintf("Module loader", LOG_ERR, "Module %s currently loaded. Aborting", info->name);

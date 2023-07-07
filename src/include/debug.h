@@ -43,6 +43,8 @@ void load_kernel_symbols(struct multiboot_tag_elf_sections* info);
 symoff_t get_symbol(uint32_t addr);
 symbol_t* get_kernel_symbol_by_name(char* name);
 
+uint32_t call_module_function(char* module, char* function, char* fmt, ...);
+
 void backtrace();
 
 #endif /*__DEBUG_H__*/

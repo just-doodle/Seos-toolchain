@@ -62,11 +62,6 @@ void vesa_putPixel(uint32_t x, uint32_t y, uint32_t color)
     ((uint8_t*)pixel_offset)[3] = (color & 0xff000000) >> 24;
 }
 
-uint32_t rgb(uint8_t r, uint8_t g, uint8_t b)
-{
-    return (0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b);
-}
-
 void vesa_copy_framebuffer(void* fb)
 {
     memcpy((void*)current_mode_info.phys_base, fb, (current_mode_info.pitch * current_mode_info.YResolution));
@@ -87,9 +82,6 @@ int vesa_draw(uint32_t* fb, uint32_t width, uint32_t height)
 
 ifb_video_info_t* vesa_get_modeinfo()
 {
-    // if(validate(current_mode_info.phys_base) != 1)
-    //     return NULL;
-
     ifb_video_info_t* info = ZALLOC_TYPES(ifb_video_info_t);
     info->width = current_mode_info.XResolution;
     info->height = current_mode_info.YResolution;
@@ -112,8 +104,14 @@ void init_vesa(struct multiboot_tag_vbe* vbe)
 
     pic_eoi(0x28);
 
-    for(uint32_t i = 0; i < current_mode_info.XResolution*current_mode_info.YResolution; i++)
-        framebuffer[i] = 0xFFDEADBE;
+    serialprintf("VESA initialized!\n");
+
+    serialprintf("Mode: %x\n", current_mode);
+    serialprintf("XResolution: %d\n", current_mode_info.XResolution);
+    serialprintf("YResolution: %d\n", current_mode_info.YResolution);
+    serialprintf("BitsPerPixel: %d\n", current_mode_info.bpp);
+    serialprintf("PhysBasePtr: %x\n", current_mode_info.phys_base);
+    serialprintf("Pitch: %d\n", current_mode_info.pitch);
 
     vesa_driver = ZALLOC_TYPES(ifb_video_driver_t);
     strcpy(vesa_driver->name, "vesa");
@@ -125,15 +123,6 @@ void init_vesa(struct multiboot_tag_vbe* vbe)
     register_video_driver(vesa_driver);
 
     isVesaInitialized = 1;
-
-    serialprintf("VESA initialized!\n");
-
-    serialprintf("Mode: %x\n", current_mode);
-    serialprintf("XResolution: %d\n", current_mode_info.XResolution);
-    serialprintf("YResolution: %d\n", current_mode_info.YResolution);
-    serialprintf("BitsPerPixel: %d\n", current_mode_info.bpp);
-    serialprintf("PhysBasePtr: %x\n", current_mode_info.phys_base);
-    serialprintf("Pitch: %d\n", current_mode_info.pitch);
 }
 
 bool isVesaInit()

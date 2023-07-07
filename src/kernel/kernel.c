@@ -45,6 +45,7 @@
 #include "dhcp.h"
 
 #include "modules.h"
+#include "multiboot2_tags.h"
 
 
 #define MOTD_NUM 3
@@ -149,6 +150,8 @@ uint32_t mem_lower = 0;
 
 char* version_file = KERNEL_NAME" "KERNEL_VERSION" "KERNEL_VERSION_CODENAME" (Enabled options: "KERNEL_ENABLED_OPTIONS") "KERNEL_BUILD_DATE" "KERNEL_BUILD_TIME;
 
+uint8_t* mtags = NULL;
+
 void kernelmain(const void* info, uint32_t multiboot_magic)
 {
     init_serial(COM1, 1);
@@ -171,7 +174,8 @@ void kernelmain(const void* info, uint32_t multiboot_magic)
     init_paging();
 
     struct multiboot_tag* tag = info;
-    alloc_region(kernel_page_dir, tag, tag+tag->size, 1, 1, 0);
+    uint32_t tsz = *((uint32_t*)info);
+    alloc_region(kernel_page_dir, info, info+tsz, 1, 1, 0);
     for(tag = (struct multiboot_tag *) ((size_t) (info + 8)); tag->type != MULTIBOOT_TAG_TYPE_END; tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7)))
     {
         switch(tag->type)
@@ -188,6 +192,8 @@ void kernelmain(const void* info, uint32_t multiboot_magic)
     }
 
     init_kheap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_MAX_ADDRESS);
+    ASSERT(load_multiboot2_tags(info) == 0);
+
     init_logdisk(4*MB, LOG_VERBOSE);
 
     ldprintf("kernel", LOG_INFO, "Running SectorOS-RW4 kernel %s", KERNEL_VERSION);
@@ -220,7 +226,9 @@ void kernelmain(const void* info, uint32_t multiboot_magic)
     enable_fast_memcpy();
 
     tag = info;
-    for(tag = (struct multiboot_tag *) ((size_t) (info + 8)); tag->type != MULTIBOOT_TAG_TYPE_END; tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7)))
+    mtags = zalloc(tsz);
+    memcpy(mtags, info, tsz);
+    for(tag = (struct multiboot_tag *) ((size_t) (mtags+8)); tag->type != MULTIBOOT_TAG_TYPE_END; tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7)))
     {
         switch(tag->type)
         {
@@ -243,10 +251,13 @@ void kernelmain(const void* info, uint32_t multiboot_magic)
         case MULTIBOOT_TAG_TYPE_ELF_SECTIONS:
         {
             struct multiboot_tag_elf_sections* elfs = tag;
+            alloc_region(kernel_page_dir, tag, tag+tag->size, 1, 1, 1);
             load_kernel_symbols(elfs);
         }break;
         case MULTIBOOT_TAG_TYPE_VBE:
         {
+            if(isVesaInit())
+                break;
             struct multiboot_tag_vbe* be = tag;
             init_ifb();
             init_vesa(be);
@@ -407,7 +418,9 @@ void kernelmain(const void* info, uint32_t multiboot_magic)
 
     printf("\nSectorOS shell v2.0.0\nRun help to get the list of commands.\nkshell #> ");
 
-    ifb_refresh();
+    init_acpi();
+
+    call_module_function("__KERNEL_SYMTAB__//", "serial_puts", "message: %pc", "Look mom, i am famous\n");
 
     // init_fat32("/dev/apio1");
 
