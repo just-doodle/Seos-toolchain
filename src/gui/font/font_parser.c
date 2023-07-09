@@ -1,5 +1,4 @@
 #include "font.h"
-#include "vesa.h"
 
 uint32_t font_color = VESA_COLOR_BLACK + 1;
 

@@ -26,7 +26,7 @@
 #include "process.h"
 #include "stdout.h"
 #include "sse.h"
-#include "vesa.h"
+#include "multiboot_vesa.h"
 #include "ifb.h"
 #include "compositor.h"
 #include "timer.h"
@@ -46,6 +46,8 @@
 
 #include "modules.h"
 #include "multiboot2_tags.h"
+
+#include "mouse.h"
 
 
 #define MOTD_NUM 3
@@ -355,7 +357,7 @@ void kernelmain(const void* info, uint32_t multiboot_magic)
 
     printtime();
 
-    //compositor_load_wallpaper("/wallpaper.bmp", 2);
+    compositor_load_wallpaper("/wallpaper.bmp", 2);
     init_vbox();
     init_shell();
 
@@ -420,7 +422,11 @@ void kernelmain(const void* info, uint32_t multiboot_magic)
 
     init_acpi();
 
-    call_module_function("__KERNEL_SYMTAB__//", "serial_puts", "message: %pc", "Look mom, i am famous\n");
+    if(list_contain_str(mboot_cmd, "--nomouse") == -1)
+    {
+        init_mouse();
+        register_mouse_handler(compositor_on_mouse_move);
+    }
 
     // init_fat32("/dev/apio1");
 

@@ -101,7 +101,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/gui/font/font.o \
 			$(SRCDIR)/gui/font/font_parser.o \
 			$(SRCDIR)/drivers/video/vga_text.o \
-			$(SRCDIR)/drivers/video/vesa.o \
+			$(SRCDIR)/drivers/video/multiboot_vesa.o \
 			$(SRCDIR)/drivers/video/se_term.o \
 			$(SRCDIR)/drivers/io/serial.o \
 			$(SRCDIR)/drivers/storage/nulldev.o \
@@ -110,6 +110,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/io/mmio.o \
 			$(SRCDIR)/drivers/time/rtc.o \
 			$(SRCDIR)/drivers/input/keyboard.o \
+			$(SRCDIR)/drivers/input/mouse.o \
 			$(SRCDIR)/drivers/ethernet/rtl8139.o \
 			$(SRCDIR)/drivers/ethernet/pcnet.o \
 			$(SRCDIR)/drivers/ethernet/loopback.o \
@@ -142,6 +143,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 
 MODULES= $(FILESDIR)/test.ko \
 		 $(FILESDIR)/pcspkr.ko \
+		 $(FILESDIR)/bochs_vbe.ko \
 		 $(FILESDIR)/icmp.ko 
 
 all: kernel iso

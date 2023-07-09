@@ -7,7 +7,6 @@
 #include "string.h"
 #include "pit.h"
 #include "ramdisk.h"
-#include "vesa.h"
 
 typedef struct ifb_video_info_struct
 {
@@ -78,6 +77,8 @@ ifb_video_info_t* video_get_modeinfo();
 
 int video_modeset(uint32_t width, uint32_t height, uint32_t bpp);
 int video_draw(uint32_t* fb);
+
+int ifb_change_driver(char* name);
 
 void ifb_refresh();
 

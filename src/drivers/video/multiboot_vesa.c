@@ -1,4 +1,4 @@
-#include "vesa.h"
+#include "multiboot_vesa.h"
 #include "ifb.h"
 
 uint32_t current_mode;
@@ -114,7 +114,7 @@ void init_vesa(struct multiboot_tag_vbe* vbe)
     serialprintf("Pitch: %d\n", current_mode_info.pitch);
 
     vesa_driver = ZALLOC_TYPES(ifb_video_driver_t);
-    strcpy(vesa_driver->name, "vesa");
+    strcpy(vesa_driver->name, "multiboot vesa");
     vesa_driver->draw = vesa_draw;
     vesa_driver->get_modeinfo = vesa_get_modeinfo;
     vesa_driver->modeset = 0;

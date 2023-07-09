@@ -4,7 +4,6 @@
 #include "system.h"
 #include "vfs.h"
 #include "string.h"
-#include "vesa.h"
 #include "kheap.h"
 
 typedef struct BITMAP_FILE_HEADER

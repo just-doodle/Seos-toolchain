@@ -47,6 +47,11 @@ int isMemoryPaged(page_directory_t* dir, void* vaddr)
         return 1;
 }
 
+void alloc_kernel_region(uint32_t start_vaddr, uint32_t end_vaddr, int iden_map, int is_kernel, int is_writable)
+{
+    alloc_region(kernel_page_dir, start_vaddr, end_vaddr, iden_map, is_kernel, is_writable);
+}
+
 void* d_kmalloc(uint32_t size, int align)
 {
     void * ret = temp_mem;

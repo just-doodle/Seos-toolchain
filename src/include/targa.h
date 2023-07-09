@@ -3,7 +3,6 @@
 
 #include "system.h"
 #include "string.h"
-#include "vesa.h"
 #include "kheap.h"
 #include "vfs.h"
 

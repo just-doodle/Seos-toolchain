@@ -5,10 +5,11 @@
 #include "bitmap.h"
 #include "logdisk.h"
 #include "timer.h"
+#include "mouse.h"
 
 uint32_t background_color = rgb(254, 128, 20);
 
-#define __COMPOSITOR_LOW_END__ 0
+#define __COMPOSITOR_LOW_END__ 1
 
 ifb_video_info_t* mode = NULL;
 
@@ -133,6 +134,7 @@ uint32_t t = 0;
 void window_drawall()
 {
     //show_time();
+    compositor_background_fill();
     register listnode_t* l = NULL;
     for(l = window_list->head; l != NULL; l = l->next)
     {
@@ -152,6 +154,7 @@ void compositor_background_fill()
     if(wallpaper_type != 0)
         draw_rect_pixels(&screen_canvas, &wallpaper);
 }
+
 
 int q = 0;
 
@@ -213,6 +216,12 @@ void window_move(window_t* win, uint32_t x, uint32_t y)
     win->x = x;
     win->y = y;
 
+    if(x + win->width > screen_canvas.width)
+        win->x = screen_canvas.width - win->width;
+
+    if(y + win->height > screen_canvas.height)
+        win->y = screen_canvas.height - win->height;
+
     win->region.r = rect_create(win->x, win->y+16, win->width, win->height);
     win->bar.r = rect_create(win->x, win->y, win->width, 16);
 
@@ -270,8 +279,11 @@ int compositor_onModeset(ifb_video_info_t* vinfo)
 
     mode = vinfo;
 
+    ldprintf("Compositor", LOG_DEBUG, "Changing resolution of the compositor to %dx%dx%d", vinfo->width, vinfo->height, vinfo->bpp);
+
     compositor_background_fill();
     window_drawall();
+    ifb_refresh();
 
     return 0;
 }
@@ -440,6 +452,34 @@ window_t* get_window(uint32_t x, uint32_t y)
         }
     }
     return NULL;
+}
+
+int isMoving = 0;
+window_t* moving_window = NULL;
+
+int compositor_on_mouse_move(uint32_t x, uint32_t y, int left, int right, int middle)
+{
+    if(left)
+    {
+        if(!isMoving)
+        {
+            window_t *w = get_window(x, y);
+            if(!w)
+                return 0;
+            ldprintf("Mouse", LOG_DEBUG, "Moving window %s to (%d, %d)", w->title, x, y);
+            moving_window = w;
+            isMoving = 1;
+        }
+    }
+    else
+    {
+        if(isMoving)
+        {
+            window_move(moving_window, x, y);
+            moving_window = NULL;
+            isMoving = 0;
+        }
+    }
 }
 
 void compositor_load_wallpaper(char* file, int type)

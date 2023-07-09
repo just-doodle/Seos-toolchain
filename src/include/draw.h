@@ -4,7 +4,6 @@
 #include "system.h"
 #include "string.h"
 #include "kheap.h"
-#include "vesa.h"
 
 typedef struct rect_struct
 {

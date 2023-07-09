@@ -22,6 +22,7 @@
 #define VBOX_REQUEST_GET_MOUSE 1
 #define VBOX_REQUEST_SET_MOUSE 2
 #define VBOX_REQUEST_SET_GUEST_CAPS 55
+#define VBOX_REQUEST_SET_VISIBLE_REGION 71
 
 typedef struct vbox_header_struct
 {
@@ -68,7 +69,21 @@ typedef struct vbox_mouse_struct
     int32_t y;
 }vbox_mouse_t;
 
+typedef struct vbox_rtrect_struct
+{
+    int32_t xLeft;
+    int32_t yTop;
 
+    int32_t xRight;
+    int32_t yBottom;
+}vbox_rtrect_t;
+
+typedef struct vbox_visibleregion_struct
+{
+    vbox_header_t header;
+    uint32_t count;
+    vbox_rtrect_t rects[];
+}vbox_visibleregion_t;
 
 typedef struct vbox_struct
 {
@@ -84,6 +99,12 @@ typedef struct vbox_struct
 
     vbox_mouse_t* mouse;
     uint32_t mouse_paddr;
+
+    list_t* rects;
+    uint32_t rect_count;
+
+    vbox_visibleregion_t* visReg;
+    uint32_t visReg_paddr;
 
     pci_t vbox_pci;
 }vbox_t;

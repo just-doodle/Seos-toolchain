@@ -113,7 +113,11 @@ symoff_t get_symoff_from_modules(uint32_t addr)
             s = symbols_node->val;
             uint32_t offset = get_offset(addr, s);
             if(offset)
-                return (symoff_t){s->name, offset};
+            {
+                char* name = zalloc(strlen(s->name)+strlen(entry->info->name)+10);
+                sprintf(name, "%s(%s)", s->name, entry->info->name);
+                return (symoff_t){name, offset};
+            }
         }
     }
 
