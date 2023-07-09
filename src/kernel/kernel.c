@@ -26,7 +26,7 @@
 #include "process.h"
 #include "stdout.h"
 #include "sse.h"
-#include "vesa.h"
+#include "multiboot_vesa.h"
 #include "ifb.h"
 #include "compositor.h"
 #include "timer.h"
@@ -45,6 +45,9 @@
 #include "dhcp.h"
 
 #include "modules.h"
+#include "multiboot2_tags.h"
+
+#include "mouse.h"
 
 
 #define MOTD_NUM 3
@@ -105,7 +108,7 @@ int tcp_sample(TCPSocket_t* self, uint8_t* data, uint16_t len)
 {
     uint8_t addr[8];
     iptoa(self->remIP, addr);
-    ldprintf("kernel", LOG_DEBUG, "DATA FROM %d.%d.%d.%d:\n\t%s\n", addr[0], addr[1], addr[2], addr[3], data);
+    ldprintf("kernel", LOG_DEBUG, "DATA FROM %d.%d.%d.%d(0x%x):\n\t%s\n", addr[0], addr[1], addr[2], addr[3], self->remIP, data);
     
     if (len > 9 && data[0] == 'G' && data[1] == 'E' && data[2] == 'T' && data[3] == ' ' && data[4] == '/' && data[5] == ' ' && data[6] == 'H' && data[7] == 'T' && data[8] == 'T' && data[9] == 'P')
     {
@@ -141,11 +144,24 @@ const char* mmap_get_type_str(uint32_t type)
     };
 }
 
+char cmdline[2048];
+char bootloader_name[1024];
+
+uint32_t mem_upper = 0;
+uint32_t mem_lower = 0;
+
 char* version_file = KERNEL_NAME" "KERNEL_VERSION" "KERNEL_VERSION_CODENAME" (Enabled options: "KERNEL_ENABLED_OPTIONS") "KERNEL_BUILD_DATE" "KERNEL_BUILD_TIME;
 
-void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
+uint8_t* mtags = NULL;
+
+void kernelmain(const void* info, uint32_t multiboot_magic)
 {
     init_serial(COM1, 1);
+    if(multiboot_magic != MULTIBOOT2_BOOTLOADER_MAGIC)
+    {
+        serial_puts("Invalid magic\n");
+        return;
+    }
 
     init_text();
     text_chcolor(VGA_WHITE, VGA_LIGHT_BLUE);
@@ -156,16 +172,37 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     int logidx;
 
-    init_pmm(1024 * info->mem_upper);
+    init_pmm(1024*MB);
     init_paging();
+
+    struct multiboot_tag* tag = info;
+    uint32_t tsz = *((uint32_t*)info);
+    alloc_region(kernel_page_dir, info, info+tsz, 1, 1, 0);
+    for(tag = (struct multiboot_tag *) ((size_t) (info + 8)); tag->type != MULTIBOOT_TAG_TYPE_END; tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7)))
+    {
+        switch(tag->type)
+        {
+        case MULTIBOOT_TAG_TYPE_BASIC_MEMINFO:
+        {
+            struct multiboot_tag_basic_meminfo* meminfo = tag;
+            mem_lower = meminfo->mem_lower;
+            mem_upper = meminfo->mem_upper;
+            init_pmm(1024*mem_upper);
+        }break;
+        };
+        break;
+    }
+
     init_kheap(KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_MAX_ADDRESS);
+    ASSERT(load_multiboot2_tags(info) == 0);
+
     init_logdisk(4*MB, LOG_VERBOSE);
 
     ldprintf("kernel", LOG_INFO, "Running SectorOS-RW4 kernel %s", KERNEL_VERSION);
-    ldprintf("multiboot", LOG_INFO, "cmdline: %s", info->cmdline);
+    ldprintf("multiboot", LOG_INFO, "cmdline: %s", cmdline);
     ldprintf("gdt", LOG_INFO, "Added %d entries to GDT", GDT_MAX_ENTRIES);
     ldprintf("idt", LOG_INFO, "IDT has been initialized");
-    ldprintf("pmm", LOG_INFO, "Memory found in system: %dKB", ((info->mem_upper)));
+    ldprintf("pmm", LOG_INFO, "Memory found in system: %dKB", ((mem_upper)));
     ldprintf("pmm", LOG_INFO, "Physical memory manager has been initialized");
     ldprintf("paging", LOG_INFO, "Memory page manager has been initialized");
     ldprintf("kernel_heap", LOG_INFO, "Heap start: 0x%x, Heap end: 0x%x, Heap max address: 0x%x, Heap initial size: %dB", KHEAP_START, (KHEAP_START+KHEAP_INITIAL_SIZE), KHEAP_MAX_ADDRESS, KHEAP_INITIAL_SIZE);
@@ -180,14 +217,61 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     init_mount();
     syscall_mount(NULL, "/proc", "kernelfs", 0, NULL);
     logdisk_mount();
-
-    load_kernel_symbols(info);
-
     init_sorfs();
     init_tmpfs();
     init_ext2();
 
-    mboot_cmd = str_split(((char*)info->cmdline), " ", NULL);
+    init_timer_interface();
+	init_pit();
+
+    enable_sse();
+    enable_fast_memcpy();
+
+    tag = info;
+    mtags = zalloc(tsz);
+    memcpy(mtags, info, tsz);
+    for(tag = (struct multiboot_tag *) ((size_t) (mtags+8)); tag->type != MULTIBOOT_TAG_TYPE_END; tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7)))
+    {
+        switch(tag->type)
+        {
+        case MULTIBOOT_TAG_TYPE_CMDLINE:
+        {
+            struct multiboot_tag_string* str = tag;
+            strncpy(cmdline, str->string, 2048);
+        }break;
+        case MULTIBOOT_TAG_TYPE_BASIC_MEMINFO:
+        {
+            struct multiboot_tag_basic_meminfo* meminfo = tag;
+            mem_lower = meminfo->mem_lower;
+            mem_upper = meminfo->mem_upper;
+        }break;
+        case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME:
+        {
+            struct multiboot_tag_string* bootloader = tag;
+            strncpy(bootloader_name, bootloader->string, 1024);
+        }break;
+        case MULTIBOOT_TAG_TYPE_ELF_SECTIONS:
+        {
+            struct multiboot_tag_elf_sections* elfs = tag;
+            alloc_region(kernel_page_dir, tag, tag+tag->size, 1, 1, 1);
+            load_kernel_symbols(elfs);
+        }break;
+        case MULTIBOOT_TAG_TYPE_VBE:
+        {
+            if(isVesaInit())
+                break;
+            struct multiboot_tag_vbe* be = tag;
+            init_ifb();
+            init_vesa(be);
+
+            init_compositor();
+
+            init_seterm();
+        }break;
+        };
+    }
+
+    mboot_cmd = str_split(((char*)cmdline), " ", NULL);
 
     if((logidx = list_contain_str(mboot_cmd, "--loglevel")) != 0)
     {
@@ -202,50 +286,15 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
             logdisk_change_policy(logstate);
         }
     }
-
-    alloc_region(kernel_page_dir, info->boot_device, info->boot_device+64, 1, 1, 0);
-
     kernelfs_add_variable("/proc", "compiler", compiler, strlen(compiler));
-    kernelfs_add_variable("/proc", "cmdline", info->cmdline, strlen(((char*)info->cmdline)));
-    kernelfs_add_variable("/proc", "loader", info->boot_loader_name, strlen(((char*)info->boot_loader_name)));
+    kernelfs_add_variable("/proc", "cmdline", cmdline, strlen(((char*)cmdline)));
+    kernelfs_add_variable("/proc", "loader", bootloader_name, strlen(((char*)bootloader_name)));
     kernelfs_add_variable("/proc", "version", version_file, strlen(((char*)version_file)));
 
     syscall_mount(NULL, "/tmp", "tmpfs", 0, NULL);
 
-    alloc_region(kernel_page_dir, info->mmap_addr, info->mmap_addr + info->mmap_length, 1, 1, 1);
-    if(info->flags & MULTIBOOT_INFO_MEM_MAP)
-    {
-        const char* mmap_type[6] = {
-            "Unknown memory",
-            "Free memory",
-            "Reserved memory",
-            "ACPI reclaimable memory",
-            "Non volatile memory",
-            "Bad memory",
-        };
-        multiboot_memory_map_t* mmap = info->mmap_addr;
-        for(uint32_t i = 0; i < (info->mmap_length/sizeof(multiboot_memory_map_t)); i++)
-        {
-            char* tp = mmap_get_type_str(mmap[i].type);
-            serialprintf("[MMAP] 0x%08x | 0x%08x | %s (%d)\n", mmap[i].addr, mmap[i].len, mmap_get_type_str(mmap[i].type), mmap[i].type);
-        }
-    }
-
     init_portDev();
     init_nulldev();
-
-    init_timer_interface();
-	init_pit();
-
-    enable_sse();
-    enable_fast_memcpy();
-
-    init_ifb();
-    init_vesa(info);
-
-    init_compositor();
-
-    init_seterm();
 
     init_syscall();
 
@@ -273,7 +322,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     if(no_process == 0)
         tss_set_kernel_stack(0x10, esp);
 
-    ldprintf("multiboot", LOG_DEBUG, "\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", info->boot_loader_name, info->cmdline, (info->mem_upper / 1024));
+    ldprintf("multiboot", LOG_DEBUG, "\t-Bootloader: %s\n\t-CmdLine: %s\n\t-Available memory: %dMB\n", bootloader_name, cmdline, (mem_upper / 1024));
 
     ldprintf("KERNEL", LOG_INFO, "Kernel has successfully initialized");
 
@@ -308,7 +357,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
     printtime();
 
-    //compositor_load_wallpaper("/wallpaper.bmp", 2);
+    compositor_load_wallpaper("/wallpaper.bmp", 2);
     init_vbox();
     init_shell();
 
@@ -318,7 +367,7 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     {
         init_networkInterfaceManager();
         init_loopback();
-        //init_rtl8139();
+        init_rtl8139();
         //init_pcnet(); //! Does not work
 
         switch_interface(0);
@@ -331,14 +380,11 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
 
         init_tcp();
 
-        // dhcp_discover();
-        // while(isIPReady() == 0);
-
         TCPSocket_t* s = tcp_listen(9090);
         tcp_bind(s, tcp_sample);
 
         uint8_t ip[4];
-        get_ip2(ip);
+        iptoa(0x100007f, ip);
 
         TCPSocket_t* sock = tcp_connect(ip, 9090);
         tcpsocket_send(sock, "GET / HTTP", 11);
@@ -372,17 +418,15 @@ void kernelmain(const multiboot_info_t* info, uint32_t multiboot_magic)
     compositor_message_show("Warning:\nENABLE_DEBUG_SYMBOL_LOADING is enabled. This can impact performance when loading executables.");
     #endif
 
-    if(info->mods_count != 0)
-    {
-        multiboot_module_t* mods = info->mods_addr;
-        alloc_region(kernel_page_dir, info->mods_addr, info->mods_addr + (sizeof(multiboot_module_t)*info->mods_count), 1, 1, 1);
-        alloc_region(kernel_page_dir, mods[0].cmdline, mods[0].cmdline + 256, 1, 1, 0);
-        ldprintf("KERNEL", LOG_INFO, "Got module %s", mods[0].cmdline);
-        alloc_region(kernel_page_dir, mods[0].mod_start, mods[0].mod_end, 1, 1, 1);
-        add_ramdisk(mods[0].mod_start, mods[0].mod_end, 0);
-    }
-
     printf("\nSectorOS shell v2.0.0\nRun help to get the list of commands.\nkshell #> ");
+
+    init_acpi();
+
+    if(list_contain_str(mboot_cmd, "--nomouse") == -1)
+    {
+        init_mouse();
+        register_mouse_handler(compositor_on_mouse_move);
+    }
 
     // init_fat32("/dev/apio1");
 

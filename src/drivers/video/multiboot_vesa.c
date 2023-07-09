@@ -1,4 +1,4 @@
-#include "vesa.h"
+#include "multiboot_vesa.h"
 #include "ifb.h"
 
 uint32_t current_mode;
@@ -62,11 +62,6 @@ void vesa_putPixel(uint32_t x, uint32_t y, uint32_t color)
     ((uint8_t*)pixel_offset)[3] = (color & 0xff000000) >> 24;
 }
 
-uint32_t rgb(uint8_t r, uint8_t g, uint8_t b)
-{
-    return (0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b);
-}
-
 void vesa_copy_framebuffer(void* fb)
 {
     memcpy((void*)current_mode_info.phys_base, fb, (current_mode_info.pitch * current_mode_info.YResolution));
@@ -87,9 +82,6 @@ int vesa_draw(uint32_t* fb, uint32_t width, uint32_t height)
 
 ifb_video_info_t* vesa_get_modeinfo()
 {
-    if(validate(current_mode_info.phys_base) != 1)
-        return NULL;
-
     ifb_video_info_t* info = ZALLOC_TYPES(ifb_video_info_t);
     info->width = current_mode_info.XResolution;
     info->height = current_mode_info.YResolution;
@@ -102,26 +94,15 @@ ifb_video_info_t* vesa_get_modeinfo()
     return info;
 }
 
-void init_vesa(multiboot_info_t *m)
+void init_vesa(struct multiboot_tag_vbe* vbe)
 {
-    alloc_region(kernel_page_dir, m->vbe_mode_info, m->vbe_mode_info+sizeof(VBE_MODE_INFO_t), 1, 1, 1);
-    current_mode_info = *((VBE_MODE_INFO_t*)m->vbe_mode_info);
+    current_mode_info = *((VBE_MODE_INFO_t*)vbe->vbe_mode_info.external_specification);
+    current_mode = vbe->vbe_mode;
 
-    void* framebuffer = vesa_getFramebuffer();
+    uint32_t* framebuffer = current_mode_info.phys_base;
     alloc_region(kernel_page_dir, (uint32_t)framebuffer, (uint32_t)(framebuffer + vesa_getXResolution() * vesa_getYResolution() * 4), 1, 1, 1);
 
     pic_eoi(0x28);
-
-    vesa_driver = ZALLOC_TYPES(ifb_video_driver_t);
-    strcpy(vesa_driver->name, "vesa");
-    vesa_driver->draw = vesa_draw;
-    vesa_driver->get_modeinfo = vesa_get_modeinfo;
-    vesa_driver->modeset = 0;
-    vesa_driver->flags = 0;
-
-    register_video_driver(vesa_driver);
-
-    isVesaInitialized = 1;
 
     serialprintf("VESA initialized!\n");
 
@@ -131,6 +112,17 @@ void init_vesa(multiboot_info_t *m)
     serialprintf("BitsPerPixel: %d\n", current_mode_info.bpp);
     serialprintf("PhysBasePtr: %x\n", current_mode_info.phys_base);
     serialprintf("Pitch: %d\n", current_mode_info.pitch);
+
+    vesa_driver = ZALLOC_TYPES(ifb_video_driver_t);
+    strcpy(vesa_driver->name, "multiboot vesa");
+    vesa_driver->draw = vesa_draw;
+    vesa_driver->get_modeinfo = vesa_get_modeinfo;
+    vesa_driver->modeset = 0;
+    vesa_driver->flags = 0;
+
+    register_video_driver(vesa_driver);
+
+    isVesaInitialized = 1;
 }
 
 bool isVesaInit()

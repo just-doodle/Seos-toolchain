@@ -71,6 +71,7 @@ void* virt2phys(page_directory_t* dir, void* vaddr);
 void* d_kmalloc(uint32_t size, int align);
 
 void alloc_region(page_directory_t * dir, uint32_t start_vaddr, uint32_t end_vaddr, int iden_map, int is_kernel, int is_writable);
+void alloc_kernel_region(uint32_t start_vaddr, uint32_t end_vaddr, int iden_map, int is_kernel, int is_writable);
 void free_region(page_directory_t * dir, uint32_t start_vaddr, uint32_t end_vaddr, int free);
 
 void alloc_page(page_directory_t * dir, uint32_t vaddr, uint32_t frame, int is_kernel, int is_writable);

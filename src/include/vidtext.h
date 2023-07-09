@@ -3,7 +3,6 @@
 
 #include "system.h"
 #include "font.h"
-#include "vesa.h"
 
 #include "draw.h"
 #include "kheap.h"

@@ -12,7 +12,7 @@ OSTOOL_DIR=~/sysroot/usr/bin/
 CC=i686-elf-gcc
 CCVERSION = $(shell echo $(CC) $(shell $(PREFIX)$(CC) --version | grep $(CC) | sed 's/^.* //g'))
 CFLAGS=
-KCFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -DKERNEL_COMPILER="\"$(CCVERSION)\"" -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -Wpedantic -ggdb -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=1 -D__COMPOSITOR_LOW_END__=0 $(CFLAGS)
+KCFLAGS= -I$(INCLUDEDIR) -I/usr/include -nostdlib -DKERNEL_COMPILER="\"$(CCVERSION)\"" -fno-omit-frame-pointer -lgcc -fno-builtin -fno-exceptions -fno-leading-underscore -ffreestanding -Wall -Wpedantic -ggdb -O0 -D__ENABLE_DEBUG_SYMBOL_LOADING__=1 -D__COMPOSITOR_LOW_END__=0 $(CFLAGS)
 
 
 CXX=$(TOOLDIR)/i686-elf-g++
@@ -59,6 +59,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/cpu/tss_helper.o \
 			$(SRCDIR)/drivers/cpu/pic.o \
 			$(SRCDIR)/drivers/cpu/pit.o \
+			$(SRCDIR)/drivers/cpu/acpi.o \
 			$(SRCDIR)/drivers/cpu/rdtsc.o \
 			$(SRCDIR)/drivers/cpu/sse.o \
 			$(SRCDIR)/drivers/cpu/cpuinfo.o \
@@ -100,7 +101,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/gui/font/font.o \
 			$(SRCDIR)/gui/font/font_parser.o \
 			$(SRCDIR)/drivers/video/vga_text.o \
-			$(SRCDIR)/drivers/video/vesa.o \
+			$(SRCDIR)/drivers/video/multiboot_vesa.o \
 			$(SRCDIR)/drivers/video/se_term.o \
 			$(SRCDIR)/drivers/io/serial.o \
 			$(SRCDIR)/drivers/storage/nulldev.o \
@@ -109,6 +110,7 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/drivers/io/mmio.o \
 			$(SRCDIR)/drivers/time/rtc.o \
 			$(SRCDIR)/drivers/input/keyboard.o \
+			$(SRCDIR)/drivers/input/mouse.o \
 			$(SRCDIR)/drivers/ethernet/rtl8139.o \
 			$(SRCDIR)/drivers/ethernet/pcnet.o \
 			$(SRCDIR)/drivers/ethernet/loopback.o \
@@ -136,10 +138,12 @@ OBJECTS= 	$(SRCDIR)/boot/multiboot.o \
 			$(SRCDIR)/process/filedescriptor.o \
 			$(SRCDIR)/kernel/shell.o \
 			$(SRCDIR)/kernel/modules.o \
+			$(SRCDIR)/kernel/multiboot_tags.o \
 			$(SRCDIR)/kernel/kernel.o
 
 MODULES= $(FILESDIR)/test.ko \
 		 $(FILESDIR)/pcspkr.ko \
+		 $(FILESDIR)/bochs_vbe.ko \
 		 $(FILESDIR)/icmp.ko 
 
 all: kernel iso
@@ -165,17 +169,22 @@ $(ISOFILE): $(MODULES) $(IMAGEFILE) $(EXECUTABLE)
 	@echo 'set root=(cd)' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "Boot $(PROJECT)" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 2' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 2' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "Boot $(PROJECT) in debug mode" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'menuentry "Boot $(PROJECT) with networking enabled" { '>> $(PROJECT)/boot/grub/grub.cfg
-	@echo 'multiboot /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0 --network_enable' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0 --network_enable' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'menuentry "Boot $(PROJECT) with only loopback enabled" { '>> $(PROJECT)/boot/grub/grub.cfg
+	@echo 'multiboot2 /boot/$(EXECUTABLE) --root /dev/apio0 --loglevel 0 --network_enable_loopback' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'set gfxpayload=800x600x32' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo 'boot' >> $(PROJECT)/boot/grub/grub.cfg
 	@echo '}' >> $(PROJECT)/boot/grub/grub.cfg
@@ -214,6 +223,9 @@ rund: $(ISOFILE)
 
 runkvmd: $(ISOFILE)
 	$(QEMU) $(QEMUFLAGS) $(QEMUDFLAGS) -enable-kvm -cpu host
+
+runvbox:
+	$(SCRIPTSDIR)/run_vbox.sh
 
 stripd: $(EXECUTABLE)
 	@$(TOOLDIR)$(OBJCOPY) --only-keep-debug $(EXECUTABLE) debug.sym

@@ -56,4 +56,6 @@ int unload_module(char* name);
 void print_list_modules();
 int module_stopall();
 
+symoff_t get_symoff_from_modules(uint32_t addr);
+
 #endif /*__MODULES_H__*/

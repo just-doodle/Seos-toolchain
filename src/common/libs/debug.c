@@ -102,28 +102,22 @@ symoff_t get_symbol(uint32_t addr)
         }
     }
 
-    list_t* module_symbols = get_symbol_list_from_last_module();
-    foreach(symbol_node, module_symbols)
-    {
-        sym = symbol_node->val;
-        uint32_t offset = get_offset(addr, sym);
-        if(offset)
-            return (symoff_t){sym->name, offset};
-    }
+    return get_symoff_from_modules(addr);
+
 
 	return (symoff_t){"????", 0};
 }
 
-void load_kernel_symbols(multiboot_info_t* info)
+void load_kernel_symbols(struct multiboot_tag_elf_sections* info)
 {
-    uint32_t shndx = info->u.elf_sec.shndx;
-    uint32_t num = info->u.elf_sec.num;
-    uint32_t size = info->u.elf_sec.size;
-    uint8_t* shdr_buf = info->u.elf_sec.addr;
+    uint32_t shndx = info->shndx;
+    uint32_t num = info->num;
+    uint32_t size = info->size;
+    uint8_t* shdr_buf = info->sections;
 
     alloc_region(kernel_page_dir, shdr_buf, shdr_buf + (num*size), 1, 1, 1);
 
-    elf_section_header_t* shdr = (elf_section_header_t*)info->u.elf_sec.addr;
+    elf_section_header_t* shdr = (elf_section_header_t*)info->sections;
 
     uint32_t sym_num = 0;
     elf_sym_t* symtab = NULL;
@@ -192,6 +186,538 @@ symbol_t* get_kernel_symbol_by_name(char* name)
     }
     
     return NULL;
+}
+
+#define FUNCTION_ARG_CHAR 0
+#define FUNCTION_ARG_CHAR_P 1
+#define FUNCTION_ARG_U8 2
+#define FUNCTION_ARG_U16 3
+#define FUNCTION_ARG_U32 4
+#define FUNCTION_ARG_U8_P 6
+#define FUNCTION_ARG_U16_P 7
+#define FUNCTION_ARG_U32_P 8
+#define FUNCTION_ARG_S8 9
+#define FUNCTION_ARG_S16 10
+#define FUNCTION_ARG_S32 11
+#define FUNCTION_ARG_S8_P 12
+#define FUNCTION_ARG_S16_P 13
+#define FUNCTION_ARG_S32_P 14
+#define FUNCTION_ARG_POINTER 15
+#define FUNCTION_ARG_VOID_PTR 16
+
+typedef struct debug_function_argument_struct
+{
+    uint32_t type;
+    uint32_t val;   
+}debug_function_arg_t;
+
+uint32_t call_module_function_helper(char* module, char* function, char* fmt, va_list list)
+{
+
+    ldprintf("function caller", LOG_DEBUG, "Calling %s from %s", function, module);
+
+    symbol_t* sym = NULL;
+
+    if(strcmp("__KERNEL_SYMTAB__//", module) == 0)
+    {
+        sym = get_kernel_symbol_by_name(function);
+    }
+    else
+    {
+        if(!module_isLoaded(module))
+            return -1;
+        module_entry_t* mentry = get_module_entry_by_name(module);
+        if(validate(mentry) != 1)
+            return -1;
+        foreach(l, mentry->symbols)
+        {
+            symbol_t* s = l->val;
+            if(strcmp(function, s->name) == 0)
+            {
+                sym = s;
+                break;
+            }
+        }
+    }
+
+    if(validate(sym) != 1)
+    {
+        ldprintf("function caller", LOG_ERR, "Given function %s does not exist in symbol table", function);
+        return -1;
+    }
+
+    uint32_t ret = 0;
+    list_t* args = list_create();
+    char c = '\0';
+    uint32_t size;
+    char width_str[10];
+    int size_override = 0;
+    int i = 0;
+
+    while ((c = *fmt++) != 0)
+    {
+        if(validate(fmt) != 1)
+            break;
+        if (c == '%')
+        {
+            c = *fmt++;
+            // serialprintf("Got fmt %c\n", c);
+            switch(c)
+            {
+            case '0':
+            {
+                size_override = 1;
+                i = 0;
+                c = *fmt;
+                while (!is_fmt_letter(c))
+                {
+                    width_str[i++] = c;
+                    fmt++;
+                    c = *fmt;
+                }
+                width_str[i] = 0;
+                fmt++;
+                size = atoi(width_str);
+                serialprintf("Got fmt %c\n", *(fmt-1));
+                switch(*(fmt-1))
+                {    
+                case 'u':
+                {
+                    if(size_override)
+                    {
+                        switch(size)
+                        {
+                        case 8:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U8;
+                            a->val = va_arg(list, int);
+                            list_push(args, a);
+                        }break;
+                        case 16:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U16;
+                            a->val = va_arg(list, int);
+                            list_push(args, a);
+                        }break;
+                        case 32:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U32;
+                            a->val = va_arg(list, uint32_t);
+                            list_push(args, a);
+                        }break;
+                        default:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U8;
+                            a->val = va_arg(list, int);
+                            list_push(args, a);
+                        }break;
+                        };
+                    }
+                    else
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_U32;
+                        a->val = va_arg(list, uint32_t);
+                        list_push(args, a);
+                    }
+                }break;
+                case 's':
+                {
+                    if(size_override)
+                    {
+                        switch(size)
+                        {
+                        case 8:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S8;
+                            a->val = va_arg(list, int);
+                            list_push(args, a);
+                        }break;
+                        case 16:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S16;
+                            a->val = va_arg(list, int);
+                            list_push(args, a);
+                        }break;
+                        case 32:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S32;
+                            a->val = va_arg(list, int32_t);
+                            list_push(args, a);
+                        }break;
+                        default:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S8;
+                            a->val = va_arg(list, int);
+                            list_push(args, a);
+                        }break;
+                        };
+                    }
+                    else
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_S32;
+                        a->val = va_arg(list, int32_t);
+                        list_push(args, a);
+                    }
+                }break;
+                case 'p':
+                {
+                    char t = *fmt++;
+                    switch(t)
+                    {
+                    case 'u':
+                    {
+                        if(size_override)
+                        {
+                            switch(size)
+                            {
+                            case 8:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_U8_P;
+                                a->val = va_arg(list, uint8_t*);
+                                list_push(args, a);
+                            }break;
+                            case 16:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_U16_P;
+                                a->val = va_arg(list, uint16_t*);
+                                list_push(args, a);
+                            }break;
+                            case 32:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_U32_P;
+                                a->val = va_arg(list, uint32_t*);
+                                list_push(args, a);
+                            }break;
+                            default:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_U8_P;
+                                a->val = va_arg(list, uint8_t*);
+                                list_push(args, a);
+                            }break;
+                            };
+                        }
+                        else
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U32_P;
+                            a->val = va_arg(list, uint32_t*);
+                            list_push(args, a);
+                        }
+                    }break;
+                    case 's':
+                    {
+                        if(size_override)
+                        {
+                            switch(size)
+                            {
+                            case 8:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_S8_P;
+                                a->val = va_arg(list, int8_t*);
+                                list_push(args, a);
+                            }break;
+                            case 16:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_S16_P;
+                                a->val = va_arg(list, int16_t*);
+                                list_push(args, a);
+                            }break;
+                            case 32:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_S32_P;
+                                a->val = va_arg(list, int32_t*);
+                                list_push(args, a);
+                            }break;
+                            default:
+                            {
+                                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                                a->type = FUNCTION_ARG_S8_P;
+                                a->val = va_arg(list, int8_t*);
+                                list_push(args, a);
+                            }break;
+                            };
+                        }
+                        else
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S32_P;
+                            a->val = va_arg(list, int32_t*);
+                            list_push(args, a);
+                        }
+                    }break;
+                    case 'c':
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_CHAR_P;
+                        a->val = va_arg(list, char*);
+                        list_push(args, a);
+                    }break;
+                    default:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_POINTER;
+                        a->val = va_arg(list, void*);
+                        list_push(args, a);
+                    }break;
+                    };
+                }break;
+                };
+            }break;
+            case 'u':
+            {
+                if(size_override)
+                {
+                    switch(size)
+                    {
+                    case 8:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_U8;
+                        a->val = va_arg(list, int);
+                        list_push(args, a);
+                    }break;
+                    case 16:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_U16;
+                        a->val = va_arg(list, int);
+                        list_push(args, a);
+                    }break;
+                    case 32:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_U32;
+                        a->val = va_arg(list, uint32_t);
+                        list_push(args, a);
+                    }break;
+                    default:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_U8;
+                        a->val = va_arg(list, int);
+                        list_push(args, a);
+                    }break;
+                    };
+                }
+                else
+                {
+                    debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                    a->type = FUNCTION_ARG_U32;
+                    a->val = va_arg(list, uint32_t);
+                    list_push(args, a);
+                }
+            }break;
+            case 's':
+            {
+                if(size_override)
+                {
+                    switch(size)
+                    {
+                    case 8:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_S8;
+                        a->val = va_arg(list, int);
+                        list_push(args, a);
+                    }break;
+                    case 16:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_S16;
+                        a->val = va_arg(list, int);
+                        list_push(args, a);
+                    }break;
+                    case 32:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_S32;
+                        a->val = va_arg(list, int32_t);
+                        list_push(args, a);
+                    }break;
+                    default:
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_S8;
+                        a->val = va_arg(list, int);
+                        list_push(args, a);
+                    }break;
+                    };
+                }
+                else
+                {
+                    debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                    a->type = FUNCTION_ARG_S32;
+                    a->val = va_arg(list, int32_t);
+                    list_push(args, a);
+                }
+            }break;
+            case 'p':
+            {
+                char t = *fmt++;
+                switch(t)
+                {
+                case 'u':
+                {
+                    if(size_override)
+                    {
+                        switch(size)
+                        {
+                        case 8:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U8_P;
+                            a->val = va_arg(list, uint8_t*);
+                            list_push(args, a);
+                        }break;
+                        case 16:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U16_P;
+                            a->val = va_arg(list, uint16_t*);
+                            list_push(args, a);
+                        }break;
+                        case 32:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U32_P;
+                            a->val = va_arg(list, uint32_t*);
+                            list_push(args, a);
+                        }break;
+                        default:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_U8_P;
+                            a->val = va_arg(list, uint8_t*);
+                            list_push(args, a);
+                        }break;
+                        };
+                    }
+                    else
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_U32_P;
+                        a->val = va_arg(list, uint32_t*);
+                        list_push(args, a);
+                    }
+                }break;
+                case 's':
+                {
+                    if(size_override)
+                    {
+                        switch(size)
+                        {
+                        case 8:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S8_P;
+                            a->val = va_arg(list, int8_t*);
+                            list_push(args, a);
+                        }break;
+                        case 16:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S16_P;
+                            a->val = va_arg(list, int16_t*);
+                            list_push(args, a);
+                        }break;
+                        case 32:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S32_P;
+                            a->val = va_arg(list, int32_t*);
+                            list_push(args, a);
+                        }break;
+                        default:
+                        {
+                            debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                            a->type = FUNCTION_ARG_S8_P;
+                            a->val = va_arg(list, int8_t*);
+                            list_push(args, a);
+                        }break;
+                        };
+                    }
+                    else
+                    {
+                        debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                        a->type = FUNCTION_ARG_S32_P;
+                        a->val = va_arg(list, int32_t*);
+                        list_push(args, a);
+                    }
+                }break;
+                case 'c':
+                {
+                    debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                    a->type = FUNCTION_ARG_CHAR_P;
+                    a->val = va_arg(list, char*);
+                    list_push(args, a);
+                }break;
+                default:
+                {
+                    debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                    a->type = FUNCTION_ARG_POINTER;
+                    a->val = va_arg(list, void*);
+                    list_push(args, a);
+                }break;
+                };
+            }break;
+            case 'c':
+            {
+                debug_function_arg_t* a = zalloc(sizeof(debug_function_arg_t));
+                a->type = FUNCTION_ARG_CHAR;
+                a->val = va_arg(list, int);
+                list_push(args, a);
+            }break;
+            };
+        }
+    }
+
+    uint32_t argc = list_size(args);
+    ldprintf("function caller", LOG_DEBUG, "LOOP exited with args %d", (argc));
+
+    foreach(k, args)
+    {
+        debug_function_arg_t* a = k->val;
+        ldprintf("function caller", LOG_DEBUG, "Got argument %x", a->val);
+        ASM_FUNC("push %0" :: "r"(a->val));
+    }
+
+    ASM_FUNC("call *%1" : "=a"(ret) : "r"(sym->addr));
+    ldprintf("function caller", LOG_DEBUG, "Function called");
+
+    foreach(k, args)
+    {
+        ASM_FUNC("pop %%ecx"::);
+        free(k->val);
+    }
+
+    list_destroy(args);
+    return ret;
+}
+
+uint32_t call_module_function(char* module, char* function, char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    uint32_t ret = call_module_function_helper(module, function, fmt, args);
+    va_end(args);
+    return ret;
 }
 
 void backtrace()

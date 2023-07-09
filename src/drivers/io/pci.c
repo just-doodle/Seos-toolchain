@@ -72,6 +72,10 @@ pci_t pci_scan_function(uint16_t vendor_id, uint16_t device_id, uint32_t bus, ui
 		uint32_t vendid = pci_read(dev, PCI_OFF_VENDOR_ID);
 		if(devid == device_id && vendor_id == vendid)
 			return dev;
+
+		if(device_id == -1 && vendor_id == -1)
+			return dev;
+
 	}
 	return dev_zero;
 }

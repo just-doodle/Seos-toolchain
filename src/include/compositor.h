@@ -78,6 +78,7 @@ window_t* get_window(uint32_t x, uint32_t y);
 void update_statusbar(char* msg, int s_col, int s_row, uint32_t color);
 
 void window_change_title(window_t* w, char* title);
+int compositor_on_mouse_move(uint32_t x, uint32_t y, int left, int right, int middle);
 
 void update_video();
 

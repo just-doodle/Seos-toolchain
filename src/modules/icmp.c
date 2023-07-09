@@ -102,7 +102,7 @@ static int icmp_handle_packet(uint8_t* packet, uint8_t* src, uint8_t* dst, uint3
 
 static int init(int argc, char** argv)
 {
-    uint8_t ip[4] = {192, 168, 1, 5};
+    uint8_t ip[4] = {127, 0, 0, 1};
     register_ipv4_protocol(icmp_handle_packet, "ICMP", PROTOCOL_ICMP);
     request_echo_reply(ip);
     ldprintf("ICMP", LOG_INFO, "ICMP protocol handler installed");

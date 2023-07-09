@@ -3,7 +3,7 @@
 
 #include "stdarg.h"
 #include "stdbool.h"
-#include "multiboot.h"
+#include "multiboot2.h"
 
 #define __USE_INBUILT_STDINT__ 1
 
@@ -45,8 +45,8 @@ typedef uint32_t uintptr_t;
 * RELN: index of current release in the current month
 * STATUS: [PR]:Prerelease, [AL]:alpha, [NR]:Normal release
 */
-#define KERNEL_VERSION "7.23.07.1NR"
-#define KERNEL_VERSION_CODENAME "Perfect Pomegranate"
+#define KERNEL_VERSION "8.23.07.2NR"
+#define KERNEL_VERSION_CODENAME "Grand Grape"
 
 #define KERNEL_ENABLED_OPTIONS "\b"
 
@@ -71,7 +71,6 @@ typedef uint32_t uintptr_t;
 
 extern uint32_t k_end;
 
-extern multiboot_info_t* m_info;
 extern int paging_enabled;
 extern bool kheap_enabled;
 

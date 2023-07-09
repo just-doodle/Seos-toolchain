@@ -102,6 +102,28 @@ symbol_t* get_symbol_from_modules(char* name)
     return NULL;
 }
 
+symoff_t get_symoff_from_modules(uint32_t addr)
+{
+    symbol_t* s = NULL;
+    foreach(module_node, modules)
+    {
+        module_entry_t* entry = module_node->val;
+        foreach(symbols_node, entry->symbols)
+        {
+            s = symbols_node->val;
+            uint32_t offset = get_offset(addr, s);
+            if(offset)
+            {
+                char* name = zalloc(strlen(s->name)+strlen(entry->info->name)+10);
+                sprintf(name, "%s(%s)", s->name, entry->info->name);
+                return (symoff_t){name, offset};
+            }
+        }
+    }
+
+    return (symoff_t){"????", 0};
+}
+
 list_t* get_symbol_list_from_last_module()
 {
     if(validate(modules) != 1)
@@ -503,6 +525,14 @@ int load_module(char** argv)
     if(info->magic != MODULE_METADATA_MAGIC)
     {
         ldprintf("Module loader", LOG_ERR, "Metadata of module %s contains invalid magic [0x%08x]", info->name, info->magic);
+        free(entry->ptr);
+        free(entry);
+        return -1;
+    }
+
+    if(strcmp(info->name, "__KERNEL_SYMTAB__//") == 0)
+    {
+        ldprintf("Module loader", LOG_ERR, "Cannot use the name \"__KERNEL_SYMTAB__//\" as module name");
         free(entry->ptr);
         free(entry);
         return -1;

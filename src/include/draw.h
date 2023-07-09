@@ -4,7 +4,6 @@
 #include "system.h"
 #include "string.h"
 #include "kheap.h"
-#include "vesa.h"
 
 typedef struct rect_struct
 {
@@ -34,7 +33,7 @@ typedef struct canvas_struct
 #define SET_ALPHA(color, alpha) ( ((color << 8) >> 8) | ((alpha << 24) & 0xff000000))
 
 #define rgb(r, g, b) ((0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b))
-#define argb(a, r, g, b) (0xff000000 & (a << 32)) | (0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b)
+#define argb(a, r, g, b) (0xff000000 & (a << 24)) | (0x00ff0000 & (r << 16)) | (0x0000ff00 & (g << 8)) | (0x000000ff & b)
 
 #define VESA_COLOR_BLACK rgb(0,0,0)
 #define VESA_COLOR_WHITE rgb(255, 255, 255)

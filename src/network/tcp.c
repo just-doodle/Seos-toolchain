@@ -363,5 +363,5 @@ void init_tcp()
         t_sockets[i] = 0;
     numSockets = 0;
     freePorts = TCP_RESERVED_PORTS+1;
-    register_ipv4_protocol(tcp_handle_packet, "UDP", PROTOCOL_TCP);
+    register_ipv4_protocol(tcp_handle_packet, "TCP", PROTOCOL_TCP);
 }

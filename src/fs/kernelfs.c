@@ -239,13 +239,20 @@ void kernelfs_add_variable(const char* root, char* name, void* ptr, uint32_t siz
 
 void kernelfs_addcharf(const char* root, char* name, char* fmt, ...)
 {
+    if(validate(root) != 1)
+        return;
+    if(validate(name) != 1)
+        return;
+    if(validate(fmt) != 1)
+        return;
+
     char* buf = zalloc(strlen(fmt) + 1024);
     va_list args;
     va_start(args, fmt);
     vsprintf(buf, NULL, fmt, args);
     va_end(args);
 
-    char* path = zalloc(strlen(root)+strlen(path)+8);
+    char* path = zalloc(strlen(root)+strlen(name)+8);
     sprintf(path, "%s/%s", root, name);
     FILE* f = file_open(path, 0);
     if(validate(f) == 1)

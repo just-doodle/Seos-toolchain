@@ -402,6 +402,16 @@ noSplit:
     }
 }
 
+int is_from_heap(void* ptr)
+{
+    memory_block_t* curr = ptr - sizeof(memory_block_t);
+    serialprintf("[KHEAP] 0x%x size %dB\n", ptr, curr->size);
+    if(validate(curr) == 1 && ((validate(curr->next) == 1 && validate(curr->prev) == 1) || curr->size != 0))
+        return 1;
+
+    return 0;
+}
+
 void free(void* ptr)
 {
     if(validate(ptr) != 1)

@@ -391,6 +391,22 @@ int s_cat(list_t* args)
     return 0;
 }
 
+int s_loglevel(list_t* args)
+{
+    uint32_t argc = list_size(args);
+    if(argc < 2)
+    {
+        printf("usage: %s [log_level=(0, 1, 2, 3, 4, 5)]\n", list_get_node_by_index(args, 0)->val);
+        return 1;
+    }
+
+    char* loglevel_c = list_pop(args)->val;
+    int loglevel = atoi(loglevel_c);
+
+    logdisk_change_policy(loglevel);
+    return 0;
+}
+
 void init_shell()
 {
     sbindx = 0;
@@ -431,6 +447,7 @@ void init_shell()
     getCMD("rmmod", "Unloads the module with given name", s_rmmod);
     getCMD("lsmod", "Lists the loaded modules", s_lsmod);
     getCMD("arpb", "Broadcast ip to given ip address", s_arpb);
+    getCMD("log_level", "Sets the level of log message to be shown.", s_loglevel);
 }
 
 void clear_buffer()

@@ -72,7 +72,7 @@ typedef union uint24
     uint32_t integer : 24 __attribute__((packed));
 }uint24_t;
 
-void init_vesa();
+void init_vesa(struct multiboot_tag_vbe* vbe);
 
 void vesa_memcpy24_to_32(uint24_t* dest, uint32_t* src, size_t size);
 void vesa_memsetRGB(uint8_t * dest, uint32_t rgb, uint32_t count);

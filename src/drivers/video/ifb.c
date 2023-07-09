@@ -111,9 +111,9 @@ void register_video_driver(ifb_video_driver_t* drv)
         block->size = block->info->size;
         block->bpp = block->info->bpp;
         fbdev->size = block->size;
+        kernelfs_addcharf("/proc", "fb", "Driver:\t%s\nXRes:\t%d\nYRes:\t%d\nBitsPerPixel:\t%d\nPitch:\t%d\nAddress:\t0x%x\n", block->current_driver->name, block->info->width, block->info->height, block->info->bpp, block->info->pitch, block->info->fb);
     }
 
-    kernelfs_addcharf("/proc", "fb", "Driver:\t%s\nXRes:\t%d\nYRes:\t%d\nBitsPerPixel:\t%d\nPitch:\t%d\nAddress:\t0x%x\n", block->current_driver->name, block->info->width, block->info->height, block->info->bpp, block->info->pitch, block->info->fb);
 }
 
 void init_ifb()
@@ -133,6 +133,76 @@ void init_ifb()
     devfs_add(fbdev);
     //ldprintf("IFB", LOG_DEBUG, "intermediate framebuffer initialized.\nheight = %dpx\nwidth = %dpx\nbuffer size = %dB\nframebuffer address: 0x%06x\n", block->info->height, block->info->width, block->size, (uint32_t)block->buffer);
     register_wakeup_callback(ifb_refresh, 60.0/get_frequency());
+}
+
+int ifb_change_driver(char* name)
+{
+    ifb_video_driver_t* pdrv = block->current_driver;
+    
+    ifb_video_driver_t* drv = NULL;
+    foreach(l, block->drivers)
+    {
+        ifb_video_driver_t* d = l->val;
+        if(strcmp(d->name, name) == 0)
+        {
+            drv = d;
+            break;
+        }
+    }
+
+    ldprintf("IFB", LOG_DEBUG, "Using driver %s:(%s)", drv->name, name);
+
+    if(!drv)
+        return 1;
+
+    block->current_driver = drv;
+
+    uint32_t* tmp = zalloc(block->info->size);
+    uint32_t tmp_sz = block->info->size;
+    memcpy(tmp, block->buffer, block->info->size);
+    //free(block->buffer);
+    block->info = drv->get_modeinfo();
+    block->buffer = zalloc(block->info->size);
+    memcpy(block->buffer, tmp, tmp_sz);
+    free(tmp);
+
+    block->size = block->info->size;
+    block->bpp = block->info->bpp;
+    fbdev->size = block->size;
+    register_modeset_handler(pdrv->onModeset);
+    pdrv->onModeset(block->info);
+    kernelfs_addcharf("/proc", "fb", "Driver:\t%s\nXRes:\t%d\nYRes:\t%d\nBitsPerPixel:\t%d\nPitch:\t%d\nAddress:\t0x%x\n", block->current_driver->name, block->info->width, block->info->height, block->info->bpp, block->info->pitch, block->info->fb);
+    KDEBUG_ADD_LABEL(VSA);
+    ifb_refresh();
+    return 0;
+}
+
+int ifb_remove_driver(char* name)
+{   
+    ifb_video_driver_t* drv = NULL;
+    foreach(l, block->drivers)
+    {
+        ifb_video_driver_t* d = l->val;
+        if(strcmp(d->name, name) == 0)
+        {
+            drv = d;
+            break;
+        }
+    }
+
+    ldprintf("IFB", LOG_DEBUG, "Using driver %s:(%s)", drv->name, name);
+
+    if(!drv)
+        return 1;
+
+    ifb_video_driver_t* d = drv->self->next->val;
+    if(drv)
+        drv->modeset(d->get_modeinfo()->width, d->get_modeinfo()->height, d->get_modeinfo()->bpp);
+
+    if(validate(d) != 1)
+        return 1;
+
+    return ifb_change_driver(d->name);
 }
 
 int video_modeset(uint32_t width, uint32_t height, uint32_t bpp)
@@ -157,6 +227,7 @@ int video_modeset(uint32_t width, uint32_t height, uint32_t bpp)
     }
     
     block->info = block->current_driver->get_modeinfo();
+    kernelfs_addcharf("/proc", "fb", "Driver:\t%s\nXRes:\t%d\nYRes:\t%d\nBitsPerPixel:\t%d\nPitch:\t%d\nAddress:\t0x%x\n", block->current_driver->name, block->info->width, block->info->height, block->info->bpp, block->info->pitch, block->info->fb);
     if(block->current_driver->modeset)
         return block->current_driver->onModeset(block->info);
 
