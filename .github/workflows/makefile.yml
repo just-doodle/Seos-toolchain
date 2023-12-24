@@ -46,11 +46,11 @@ jobs:
     - name: Create hdfile
       run: make sorhd
       
-    # - name: Upload compiled toolchain
-    #   uses: actions/upload-artifact@v2
-    #   with: 
-    #     name: sectoros_toolchain
-    #     path: ~/toolchain.tar.xz
+    - name: Upload compiled toolchain
+      uses: actions/upload-artifact@v2
+      with: 
+         name: sectoros_toolchain
+         path: ~/toolchain.tar.xz
 
     - name: Upload HDIMAGE
       uses: actions/upload-artifact@v2
